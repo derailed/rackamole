@@ -4,6 +4,14 @@ require 'json'
 
 module Rack
   class Mole
+    
+    # Initialize The Mole with the possible options
+    # <tt>:app_name</tt>    - The name of the application [Default: Moled App]
+    # <tt>:environment</tt> - The environment for the application ie :environment => RAILS_ENV
+    # <tt>:perf_threshold</tt> - Any request taking longer than this value will get moled [Default: 10]    
+    # <tt>:moleable</tt>    - Enable/Disable the MOle [Default:true]
+    # <tt>:store</tt>       - The storage instance ie log file or mongodb [Default:stdout]
+    # <tt>:user_key</tt>    - If session is enable, the session key for the user name or user_id. ie :user_key => :user_name 
     def initialize( app, opts={} )
       @app = app
       init_options( opts )
@@ -40,7 +48,7 @@ module Rack
       { 
         :app_name       =>  "Moled App",
         :moleable       =>  true,
-        :perf_threshold =>  5.0,
+        :perf_threshold =>  10,
         :store          =>  Rackamole::Store::Log.new
       }
     end

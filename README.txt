@@ -5,7 +5,7 @@
 
 The MOle is a rack application that monitors user interactions with your web site. We are not 
 talking about counting page hits here. The MOle tracks all the information available to capture
-the essence of a user interaction with your application. Using the MOle, you will be able to see
+the essence of a user interaction with your application. Using the MOle, you are able to see
 which feature is a hit or a bust. As an added bonus, the MOle also track performance and exceptions 
 that might have escaped your test suites or alpha env. To boot your managers will love you for it! 
 
