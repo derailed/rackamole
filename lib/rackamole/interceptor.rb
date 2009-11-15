@@ -6,9 +6,17 @@ module Rackamole
     # ie include Wackamole::Interceptor
     def self.included( base )
       base.send( :alias_method_chain, :rescue_action_in_public, :mole )
+      base.send( :alias_method_chain, :rescue_action_locally, :mole )
     end
     
     private
+
+      # Instructs the mole to trap the framework exception
+      def rescue_action_locally_with_mole( exception )
+        # Stuff the exception in the env for mole rack retrieval
+        request.env['mole.exception'] = exception
+        rescue_action_locally_without_mole( exception )
+      end
           
       # Instructs the mole to trap the framework exception
       def rescue_action_in_public_with_mole( exception )

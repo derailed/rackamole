@@ -9,6 +9,8 @@ module Rackamole
       
       # Dump mole info to logger
       def mole( args )
+        return if args.empty?
+        
         if args[:stack]
           display_head "MOLED EXCEPTION" 
         elsif args[:performance]

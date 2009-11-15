@@ -58,6 +58,14 @@ interactions and leverage these findings for the next iteration of your applicat
   in the session using the :user_name key. There are other options available, please take a look
   at the docs for more information.
   
+  Given Rails exception handling logic, you can also edit your application_controller.rb file and
+  include the mole interceptor to trap exceptions in production environment
+  
+  class ApplicationController
+    include Rackamole::Interceptor
+
+  This will instruct the mole to trap the raised exception from your rails stack.
+  
 === Sinatra Applications
 
   Add the following lines in the config section and smoke it...

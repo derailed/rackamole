@@ -6,6 +6,9 @@ describe Rackamole::Interceptor do
     class Fred
       def rescue_action_in_public( exception )
       end
+
+      def rescue_action_locally( exception )
+      end
     
       def request
         @request ||= OpenStruct.new( :env => {} )
@@ -20,9 +23,18 @@ describe Rackamole::Interceptor do
     end
   end
     
-  it "should include the correct methods" do    
+  it "should include the correct methods" do
+    Fred.instance_methods.should be_include( 'rescue_action_locally_without_mole' )    
+    Fred.private_instance_methods.should be_include( 'rescue_action_locally_with_mole' )
+    
     Fred.instance_methods.should be_include( 'rescue_action_in_public_without_mole' )    
     Fred.private_instance_methods.should be_include( 'rescue_action_in_public_with_mole' )
+  end
+
+  it "should set the env correctly when a local exception is raised" do
+    fred = Fred.new
+    fred.send( :rescue_action_locally, "Fred" )
+    fred.request.env['mole.exception'].should == "Fred"
   end
     
   it "should set the env correctly when an exception is raised" do

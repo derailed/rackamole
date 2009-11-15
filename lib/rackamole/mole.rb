@@ -17,16 +17,22 @@ module Rack
       init_options( opts )
     end
             
-    def call( env )      
+    def call( env )
       # Bail if application is not moleable
       return @app.call( env ) unless moleable?
-      
-      response = nil
+            
+      status, headers, body = nil
       elapsed = Hitimes::Interval.measure do
-        response = @app.call( env )
+        begin
+          status, headers, body = @app.call( env )
+        rescue => boom
+          env['mole.exception'] = boom
+          @store.mole( mole_info( env, elapsed, status, headers, body ) )
+          raise boom
+        end
       end
-      @store.mole( mole_info( env, elapsed ) )
-      response
+      @store.mole( mole_info( env, elapsed, status, headers, body ) )
+      return status, headers, body
     end 
 
   # ===========================================================================  
@@ -34,31 +40,45 @@ module Rack
        
     # Load up configuration options
     def init_options( opts )
-      options         = default_options.merge( opts )      
-      @environment    = options[:environment]
-      @perf_threshold = options[:perf_threshold]
-      @moleable       = options[:moleable]
-      @app_name       = options[:app_name]
-      @user_key       = options[:user_key]
-      @store          = options[:store]      
+      options          = default_options.merge( opts )      
+      @environment     = options[:environment]
+      @perf_threshold  = options[:perf_threshold]
+      @moleable        = options[:moleable]
+      @app_name        = options[:app_name]
+      @user_key        = options[:user_key]
+      @store           = options[:store]
+      @excluded_paths  = options[:excluded_paths]
     end
     
     # Mole default options
     def default_options
       { 
-        :app_name       =>  "Moled App",
-        :moleable       =>  true,
-        :perf_threshold =>  10,
-        :store          =>  Rackamole::Store::Log.new
+        :app_name        =>  "Moled App",
+        :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
+        :moleable        =>  true,
+        :perf_threshold  =>  10,
+        :store           =>  Rackamole::Store::Log.new
       }
     end
-               
+       
+    # Check if this request should be moled according to the exclude filters        
+    def mole_request?( request )
+      @excluded_paths.each do |exclude_path|
+        return false if request.path.match( exclude_path )
+      end
+      true
+    end
+    
     # Extract interesting information from the request
-    def mole_info( env, elapsed )      
-      request     = Rack::Request.new( env )
+    def mole_info( env, elapsed, status, headers, body )      
+      request = Rack::Request.new( env )
+      info    = OrderedHash.new
+            
+      return info unless mole_request?( request )
+                        
       session     = env['rack.session']      
       route       = get_route( request )
-      info        = OrderedHash.new
+
       ip, browser = identify( env )
       user_id     = nil
       user_name   = nil
@@ -105,9 +125,11 @@ module Rack
         info[:ruby_version]   = %x[ruby -v]
         info[:stack]          = trim_stack( exception )
         env['mole.exception'] = nil
-      end
-      
+      end      
       info
+    rescue => boom
+      $stderr.puts "!! MOLE RECORDING CRAPPED OUT !! -- #{boom}"
+      boom.backtrace.each { |l| $stderr.puts l }
     end
         
     # Trim stack trace

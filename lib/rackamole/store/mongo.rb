@@ -5,7 +5,9 @@ include Mongo
 # TODO !! Need to deal with auth
 module Rackamole
   module Store
-    # Mongo adapter. Stores mole info in a mongo database
+    # Mongo adapter. Stores mole info in a mongo database.
+    # Two collections are available namely features and logs. Logs references
+    # the features collection.
     class Mongo          
       
       attr_reader :connection
@@ -22,6 +24,8 @@ module Rackamole
       
       # Dump mole info to logger
       def mole( args )
+        return if args.empty?
+        
         feature = find_or_create_feature( args )
         log_feature( feature, args )
       rescue => mole_boom
@@ -29,10 +33,12 @@ module Rackamole
         $stderr.puts mole_boom.backtrace.join( "\n   " )        
       end
 
+      # Convenience to access mole features cltn
       def features
         @features ||= @connection['features']
       end
       
+      # Convenience to access mole log cltn
       def logs
         @logs ||= @connection['logs']
       end
