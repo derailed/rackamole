@@ -12,7 +12,7 @@ module Rackamole
       
       attr_reader :connection
       
-      def initialize( options )
+      def initialize( options = {})
         opts = default_options.merge( options )
         @connection = Connection.new( opts[:hostname], opts[:port] ).db( opts[:database] )  
       end
@@ -52,7 +52,7 @@ module Rackamole
         def default_options
           {
              :host     => 'localhost',
-             :port     => 77926,
+             :port     => 27017, # as of MongoDB version 1.0.1
              :database => 'mole_mdb'
           }
         end
