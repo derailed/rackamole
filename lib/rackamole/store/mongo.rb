@@ -12,7 +12,8 @@ module Rackamole
       
       attr_reader :connection
       
-      def initialize( opts )
+      def initialize( options )
+        opts = default_options.merge( options )
         @connection = Connection.new( opts[:hostname], opts[:port] ).db( opts[:database] )  
       end
       
@@ -45,7 +46,17 @@ module Rackamole
 
       # =======================================================================
       private
-              
+        
+        # Set up mongo default options ie localhost host, default mongo port and
+        # the database being mole_mdb      
+        def default_options
+          {
+             :host     => 'localhost',
+             :port     => 77926,
+             :database => 'mole_mdb'
+          }
+        end
+        
         # retrieves a feature if exists or create a new one otherwise
         def find_or_create_feature( args )
           if args[:route_info]
@@ -94,7 +105,7 @@ module Rackamole
           
           row = {
             :type        => type,
-            :feature     => ::DBRef.new( 'features', feature ),
+            :feature     => ::DBRef.new( 'features', feature.instance_of?( ObjectID ) ? feature : feature['_id'] ),
             :created_at  => Time.now,
             :updated_at  => Time.now
           }

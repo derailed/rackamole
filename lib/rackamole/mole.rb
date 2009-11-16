@@ -150,7 +150,7 @@ module Rack
     # Fetch route info if any...
     def get_route( request )
       return nil unless defined?( RAILS_ENV )      
-      ::ActionController::Routing::Routes.recognize_path( request.path, {:method => request.request_method } )
+      ::ActionController::Routing::Routes.recognize_path( request.path, {:method => request.request_method.downcase.to_sym } )
     end
   end
 end
