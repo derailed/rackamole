@@ -73,7 +73,9 @@ module Rack
     def mole_info( env, elapsed, status, headers, body )      
       request = Rack::Request.new( env )
       info    = OrderedHash.new
-            
+         
+      # dump( env )
+                  
       return info unless mole_request?( request )
                         
       session     = env['rack.session']      
@@ -83,6 +85,8 @@ module Rack
       user_id     = nil
       user_name   = nil
            
+      # BOZO !! This could be slow if have to query db to get user name...
+      # Preferred store username in session and give at key
       if session and @user_key
         if @user_key.instance_of? Symbol
           user_name = session[@user_key]
@@ -100,6 +104,8 @@ module Rack
       info[:user_name]    = user_name || "Unknown"
       info[:ip]           = ip
       info[:browser]      = browser
+      info[:host]         = env['SERVER_NAME']
+      info[:software]     = env['SERVER_SOFTWARE']
       info[:request_time] = elapsed if elapsed
       info[:perf_issue]   = (elapsed and elapsed > @perf_threshold)
       info[:url]          = request.url
@@ -151,6 +157,21 @@ module Rack
     def get_route( request )
       return nil unless defined?( RAILS_ENV )      
       ::ActionController::Routing::Routes.recognize_path( request.path, {:method => request.request_method.downcase.to_sym } )
+    end
+    
+    # Dump env to stdout
+    def dump( env, level=0 )
+      env.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
+        value = env[k]
+        if value.respond_to?(:each_pair) 
+          puts "%s %-#{40-level}s" % ['  '*level,k]
+          dump( env[k], level+1 )
+        elsif value.instance_of?(::ActionController::Request) or value.instance_of?(::ActionController::Response) 
+          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.class ]
+        else
+          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
+        end        
+      end
     end
   end
 end
