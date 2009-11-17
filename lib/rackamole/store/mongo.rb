@@ -14,7 +14,8 @@ module Rackamole
       
       def initialize( options = {})
         opts = default_options.merge( options )
-        @connection = Connection.new( opts[:hostname], opts[:port] ).db( opts[:database] )  
+        puts opts.inspect
+        @connection = Connection.new( opts[:host], opts[:port] ).db( opts[:database] )  
       end
       
       # clear out db content
