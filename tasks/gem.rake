@@ -112,8 +112,8 @@ namespace :gem do
     end
 
     s.files = PROJ.gem.files
-    s.executables = PROJ.gem.executables.map {|fn| File.basename(fn)} if PROJ.gem.executables
-    s.extensions = PROJ.gem.files.grep %r/extconf\.rb$/ if PROJ.gem.files
+    s.executables = PROJ.gem.executables.map {|fn| File.basename(fn)}
+    s.extensions = PROJ.gem.files.grep %r/extconf\.rb$/
 
     s.bindir = 'bin'
     dirs = Dir["{#{PROJ.libs.join(',')}}"]
@@ -127,7 +127,7 @@ namespace :gem do
                    when excl; false
                    when incl; true
                    else false end
-                 end if PROJ.gem.files
+                 end
     s.rdoc_options = PROJ.rdoc.opts + ['--main', PROJ.rdoc.main]
     s.extra_rdoc_files = rdoc_files
     s.has_rdoc = true
