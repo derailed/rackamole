@@ -28,7 +28,7 @@ PROJ = OpenStruct.new(
   :ruby_opts => %w(-w),
   :libs => [],
   :history_file => 'History.txt',
-  :readme_file => 'README.txt',
+  :readme_file => 'README.rdoc',
   :ignore_file => '.bnsignore',
 
   # Announce
