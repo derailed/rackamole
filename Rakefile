@@ -19,8 +19,9 @@ PROJ.authors         = 'Fernand Galiana'
 PROJ.email           = 'fernand.galiana@gmail.com'
 PROJ.url             = 'http://rackamole.liquidrail.com'
 PROJ.version         = Rackamole::VERSION
-PROJ.spec.opts      << '--color'
+PROJ.spec.opts       << '--color'
 PROJ.ruby_opts       = %w[-W0]
+PROJ.readme          = 'README.rdoc'
 
 # Dependencies
 depend_on "logging"      , ">= 1.2.2"
