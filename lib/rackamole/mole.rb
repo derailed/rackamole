@@ -88,13 +88,13 @@ module Rack
       # BOZO !! This could be slow if have to query db to get user name...
       # Preferred store username in session and give at key
       if session and @user_key
-        if @user_key.instance_of? Symbol
-          user_name = session[@user_key]
-        elsif @user_key.instance_of? Hash
+        if @user_key.instance_of? Hash
           user_id  = session[ @user_key[:session_key] ]
           if @user_key[:extractor]
             user_name = @user_key[:extractor].call( user_id )
           end
+        else
+          user_name = session[@user_key]
         end
       end
             
