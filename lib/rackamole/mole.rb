@@ -1,6 +1,6 @@
 require 'hitimes'
-require 'mongo/util/ordered_hash'
 require 'json'
+require 'mongo'
 
 module Rack
   class Mole

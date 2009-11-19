@@ -1,16 +1,16 @@
 require File.join(File.dirname(__FILE__), %w[.. spec_helper])
-require 'actionpack'
+# require 'actionpack'
 
 describe Rack::Mole do
   include Rack::Test::Methods
     
   before :each do
     @response = [ 200, {"Content-Type" => "text/plain"}, ["success"] ]
+    @test_env = { 'rack.session' => { :user_id => 100 }, 'HTTP_X_FORWARDED_FOR' => '1.1.1.1', 'HTTP_USER_AGENT' => "IBrowse" }    
   end
       
   class TestStore
-    attr_accessor :mole_result
-    
+    attr_accessor :mole_result    
     def mole( args )
       @mole_result = args
     end
@@ -24,11 +24,35 @@ describe Rack::Mole do
       run lambda { |env| response }
     end
   end
-  
+
+  def error_app( opts={} )
+    @app ||= Rack::Builder.new do
+      use Rack::Lint
+      use Rack::Mole, opts
+      run lambda { |env| raise "Oh Snap!" }
+    end
+  end
+
+  it "should mole a framwework exception correctly" do
+    @test_store = TestStore.new
+    @test_env   = { 'rack.session' => { :user_id => 100 }, 'HTTP_X_FORWARDED_FOR' => '1.1.1.1', 'HTTP_USER_AGENT' => "IBrowse" }
+    error_app( 
+      :app_name       => "Test App", 
+      :environment    => :test,
+      :perf_threshold => 0.1,
+      :user_key       => { :session_key => :user_id, :extractor => lambda{ |k| "Test user #{k}"} },
+      :store          => @test_store )
+    
+    begin
+      get "/", nil, @test_env
+    rescue 
+      @test_store.mole_result[:stack].should have(4).items      
+    end
+  end
+    
   describe 'moling a request' do
     before :each do
       @test_store = TestStore.new
-      @test_env   = { 'rack.session' => { :user_id => 100 }, 'HTTP_X_FORWARDED_FOR' => '1.1.1.1', 'HTTP_USER_AGENT' => "IBrowse" }
       app( 
         :app_name       => "Test App", 
         :environment    => :test,
@@ -62,7 +86,7 @@ describe Rack::Mole do
         @test_store.mole_result[:stack].should have(4).items
       end
     end
-    
+        
     it "should capture request parameters correctly" do
         get "/", { :blee => 'duh' }, @test_env
         @test_store.mole_result[:params].should == { :blee => "duh".to_json }

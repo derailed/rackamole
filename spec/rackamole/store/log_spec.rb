@@ -1,5 +1,4 @@
 require File.join(File.dirname(__FILE__), %w[.. .. spec_helper])
-require 'mongo/util/ordered_hash'
 
 describe Rackamole::Store::Log do  
   describe "#mole" do

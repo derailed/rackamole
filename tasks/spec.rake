@@ -28,7 +28,7 @@ namespace :spec do
       t.spec_files = PROJ.spec.files
       t.libs += PROJ.libs
       t.rcov = true
-      t.rcov_dir = PROJ.rcov.dir
+      t.rcov_dir = PROJ.rcov.dir       
       t.rcov_opts = PROJ.rcov.opts + ['--exclude', 'spec']
     end
 
