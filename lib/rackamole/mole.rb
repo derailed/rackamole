@@ -81,9 +81,9 @@ module Rack
       session     = env['rack.session']      
       route       = get_route( request )
 
-      ip, browser = identify( env )
-      user_id     = nil
-      user_name   = nil
+      ip, user_agent = identify( env )
+      user_id        = nil
+      user_name      = nil
            
       # BOZO !! This could be slow if have to query db to get user name...
       # Preferred store username in session and give at key
@@ -99,15 +99,15 @@ module Rack
       end
             
       info[:app_name]     = @app_name
-      info[:environment]  = @environment if @environment
+      info[:environment]  = @environment || "Unknown"
       info[:user_id]      = user_id      if user_id
       info[:user_name]    = user_name || "Unknown"
       info[:ip]           = ip
-      info[:browser]      = browser
+      info[:browser]      = id_browser( user_agent )
       info[:host]         = env['SERVER_NAME']
       info[:software]     = env['SERVER_SOFTWARE']
       info[:request_time] = elapsed if elapsed
-      info[:perf_issue]   = (elapsed and elapsed > @perf_threshold)
+      info[:performance]  = (elapsed and elapsed > @perf_threshold)
       info[:url]          = request.url
       info[:method]       = env['REQUEST_METHOD']
       info[:path]         = request.path
@@ -138,6 +138,18 @@ module Rack
       boom.backtrace.each { |l| $stderr.puts l }
     end
         
+    # Attempts to detect browser type from agent info.
+    # BOZO !! Probably more efficient way to do this...
+    def browser_types() @browsers ||= [ 'Firefox', 'Safari', 'MSIE 8.0', 'MSIE 7.0', 'MSIE 6.0', 'Opera', 'Chrome' ] end
+      
+    def id_browser( user_agent )
+      return "N/A" if !user_agent or user_agent.empty?
+      browser_types.each do |b|
+        return b if user_agent.match( /.*?#{b.gsub(/\./,'\.')}.*?/ )
+      end
+      "N/A"
+    end
+    
     # Trim stack trace
     def trim_stack( boom )
       boom.backtrace[0...4]
@@ -166,18 +178,18 @@ module Rack
     end
     
     # Dump env to stdout
-    def dump( env, level=0 )
-      env.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
-        value = env[k]
-        if value.respond_to?(:each_pair) 
-          puts "%s %-#{40-level}s" % ['  '*level,k]
-          dump( env[k], level+1 )
-        elsif value.instance_of?(::ActionController::Request) or value.instance_of?(::ActionController::Response) 
-          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.class ]
-        else
-          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
-        end        
-      end
-    end
+    # def dump( env, level=0 )
+    #   env.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
+    #     value = env[k]
+    #     if value.respond_to?(:each_pair) 
+    #       puts "%s %-#{40-level}s" % ['  '*level,k]
+    #       dump( env[k], level+1 )
+    #     elsif value.instance_of?(::ActionController::Request) or value.instance_of?(::ActionController::Response) 
+    #       puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.class ]
+    #     else
+    #       puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
+    #     end        
+    #   end
+    # end
   end
 end

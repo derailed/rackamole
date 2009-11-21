@@ -28,5 +28,4 @@ PROJ.rcov.opts       = ["--sort", "coverage", "-T", '-x mongo']
 depend_on "logging"      , ">= 1.2.2"
 depend_on "hitimes"      , ">= 1.0.3"
 depend_on "mongo"        , ">= 0.17.1"
-depend_on "mongo_mapper" , ">= 0.6.1"
 depend_on "darkfish-rdoc", ">= 1.1.5"

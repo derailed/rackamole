@@ -9,6 +9,7 @@ describe Rackamole::Store::MongoDb do
         :port     => 27017, 
         :database => 'test_mole_mdb',
         :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )
+      @db = @store.database
     end
     
     before( :each ) do
@@ -30,36 +31,34 @@ describe Rackamole::Store::MongoDb do
       @args[:session]      = { :fred => 10.to_json }
     end
     
-    it "should mole a feature correctly" do
+    it "should mole a context based feature correctly" do
       @store.mole( @args )      
-      Rackamole::Mongo::Feature.count.should == 1
-      Rackamole::Mongo::Log.count.should     == 1
+      @store.features.count.should == 1
+      @store.logs.count.should     == 1
       
-      feature = Rackamole::Mongo::Feature.first
+      feature = @store.features.find_one()
       feature.should_not be_nil
-      feature.app_name.should       == 'Test app'
-      feature.context.should        == '/fred'
-      feature.created_at.should_not be_nil
-      feature.updated_at.should_not be_nil
+      feature['app'].should     == 'Test app'
+      feature['env'].should     == :test      
+      feature['ctx'].should     == '/fred'
      
-      log = Rackamole::Mongo::Log.first
-      log.should_not               be_nil
-      log.feature.should_not       be_nil
-      log.feature.app_name.should  == 'Test app'
-      log.params.should            == { 'blee' => 'duh'.to_json }
-      log.ip.should                == '1.1.1.1'
-      log.browser.should           == 'Ibrowse'
-      log.environment.should       == :test
-      log.path.should              == '/fred'       
-      log.url.should               == 'http://test_me/'
-      log.method.should            == 'GET'
-      log.session.should           == { 'fred' => '10' }
-      log.user_name.should         == 'Fernand'
-      log.user_id.should           == 100
-      log.request_time.should      == 1.0       
-      log.perf_issue.should        == false
-      log.created_at.should_not    be_nil
-      log.updated_at.should_not    be_nil                   
+      log = @store.logs.find_one()
+      log.should_not        be_nil
+      log['typ'].should == Rackamole::Store::MongoDb::FEATURE  
+      log['fid'].should_not be_nil
+      log['par'].should     == { 'blee' => 'duh'.to_json }
+      log['ip'].should      == '1.1.1.1'
+      log['bro'].should     == 'Ibrowse'
+      log['url'].should     == 'http://test_me/'
+      log['met'].should     == 'GET'
+      log['ses'].should     == { 'fred' => '10' }
+      log['una'].should     == 'Fernand'
+      log['uid'].should     == 100
+      log['rti'].should     == 1.0
+      log['did'].should_not be_nil
+      log['tid'].should_not be_nil    
+
+      @store.features.find_one( Mongo::ObjectID.from_string( log['fid'] ) )['app'].should  == 'Test app'                     
     end
     
     it "should mole a rails feature correctly" do
@@ -67,55 +66,58 @@ describe Rackamole::Store::MongoDb do
       @args[:route_info] = { :controller => 'fred', :action => 'blee', :id => 'duh' }
       @store.mole( @args )
       
-      Rackamole::Mongo::Feature.count.should == 1
-      Rackamole::Mongo::Log.count.should     == 1
+      @store.features.count.should == 1
+      @store.logs.count.should     == 1
       
-      feature = Rackamole::Mongo::Feature.first
+      feature = @store.features.find_one()
       feature.should_not be_nil      
-      feature['controller'].should == 'fred'
-      feature['action'].should     == 'blee'
-      feature['context'].should    be_nil 
+      feature['ctl'].should == 'fred'
+      feature['act'].should == 'blee'
+      feature['ctx'].should be_nil 
       
-      log = Rackamole::Mongo::Log.first
+      log = @store.logs.find_one()      
       log.should_not be_nil
-      log['route_info'].should_not be_nil
+      log['typ'].should == Rackamole::Store::MongoDb::FEATURE
+      log['pat'].should_not be_nil
     end
     
     it "should reuse an existing feature" do
       @store.mole( @args )
       @store.mole( @args )
 
-      Rackamole::Mongo::Feature.count.should == 1
-      Rackamole::Mongo::Log.count.should     == 2  
+      @store.features.count.should == 1
+      @store.logs.count.should     == 2
     end
   
     it "should mole perf correctly" do
-      @args[:perf_issue] = true
+      @args[:performance] = true
       @store.mole( @args )
   
-      Rackamole::Mongo::Feature.count.should == 1
-      Rackamole::Mongo::Log.count.should     == 1
+      @store.features.count.should == 1
+      @store.logs.count.should     == 1
       
-      feature = Rackamole::Mongo::Feature.first
+      feature = @store.features.find_one()
       feature.should_not be_nil      
   
-      log = Rackamole::Mongo::Log.first
+      log = @store.logs.find_one()
       log.should_not be_nil
-      log.perf_issue.should == true
+      log['typ'].should == Rackamole::Store::MongoDb::PERFORMANCE
     end
     
     it 'should mole an exception correctly' do
-      @args[:exception] = ['fred']
+      @args[:stack] = ['fred']
       @store.mole( @args )
   
-      Rackamole::Mongo::Feature.count.should == 1
-      Rackamole::Mongo::Log.count.should     == 1
+      @store.features.count.should == 1
+      @store.logs.count.should     == 1
       
-      feature = Rackamole::Mongo::Feature.first
-      feature.should_not be_nil      
+      feature = @store.features.find_one()
+      feature.should_not be_nil
   
-      log = Rackamole::Mongo::Log.first
-      log.exception.should == ['fred']      
+      log = @store.logs.find_one()
+      log.should_not be_nil      
+      log['typ'].should == Rackamole::Store::MongoDb::EXCEPTION
+      log['sta'].should == ['fred']      
     end
     
     it 'should keep count an similar exceptions or perf issues' do
