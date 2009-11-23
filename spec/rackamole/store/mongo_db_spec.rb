@@ -13,9 +13,10 @@ describe Rackamole::Store::MongoDb do
     end
     
     before( :each ) do
-      @store.reset!
+      @store.send( :reset! )
       
       @args = OrderedHash.new
+      @args[:type]         = Rackamole.feature
       @args[:app_name]     = "Test app"
       @args[:environment]  = :test
       @args[:perf_issue]   = false
@@ -39,12 +40,12 @@ describe Rackamole::Store::MongoDb do
       feature = @store.features.find_one()
       feature.should_not be_nil
       feature['app'].should     == 'Test app'
-      feature['env'].should     == :test      
+      feature['env'].should     == 'test'
       feature['ctx'].should     == '/fred'
      
       log = @store.logs.find_one()
       log.should_not        be_nil
-      log['typ'].should == Rackamole::Store::MongoDb::FEATURE  
+      log['typ'].should == Rackamole.feature  
       log['fid'].should_not be_nil
       log['par'].should     == { 'blee' => 'duh'.to_json }
       log['ip'].should      == '1.1.1.1'
@@ -77,7 +78,7 @@ describe Rackamole::Store::MongoDb do
       
       log = @store.logs.find_one()      
       log.should_not be_nil
-      log['typ'].should == Rackamole::Store::MongoDb::FEATURE
+      log['typ'].should == Rackamole.feature
       log['pat'].should_not be_nil
     end
     
@@ -90,7 +91,7 @@ describe Rackamole::Store::MongoDb do
     end
   
     it "should mole perf correctly" do
-      @args[:performance] = true
+      @args[:type]         = Rackamole.perf
       @store.mole( @args )
   
       @store.features.count.should == 1
@@ -101,11 +102,13 @@ describe Rackamole::Store::MongoDb do
   
       log = @store.logs.find_one()
       log.should_not be_nil
-      log['typ'].should == Rackamole::Store::MongoDb::PERFORMANCE
+      log['typ'].should == Rackamole.perf
     end
     
     it 'should mole an exception correctly' do
+      @args[:type]  = Rackamole.fault
       @args[:stack] = ['fred']
+      @args[:fault] = "Oh Snap!"
       @store.mole( @args )
   
       @store.features.count.should == 1
@@ -116,8 +119,9 @@ describe Rackamole::Store::MongoDb do
   
       log = @store.logs.find_one()
       log.should_not be_nil      
-      log['typ'].should == Rackamole::Store::MongoDb::EXCEPTION
-      log['sta'].should == ['fred']      
+      log['typ'].should == Rackamole.fault
+      log['sta'].should == ['fred']
+      log['msg'].should == 'Oh Snap!'      
     end
     
     it 'should keep count an similar exceptions or perf issues' do

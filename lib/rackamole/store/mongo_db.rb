@@ -4,28 +4,36 @@ require 'mongo'
 # BOZO !! Deal with indexes here ?
 module Rackamole
   module Store
-    # Mongo adapter. Stores mole info in a mongo database.
+    # Mongo adapter. Stores mole info to a mongo database.
     class MongoDb
       
-      attr_reader :database, :logs, :features
-      
-      # Defines the various feature types
-      FEATURE     = 0
-      PERFORMANCE = 1
-      EXCEPTION   = 2
-      
+      attr_reader :database, :logs, :features #:nodoc:
+            
+      # Initializes the mongo db store. MongoDb can be used as a persitent store for
+      # mole information. This is a preferred store for the mole as it will allow you
+      # to gather up reports based on application usage, perf or faults...
+      #
+      # Setup rackamole to use the mongodb store as follows:
+      #
+      #   config.middleware.use Rack::Mole, { :store => Rackamole::Store::MongoDb.new }
+      #
+      # === Options
+      #
+      # :host     :: The name of the host running the mongo server. Default: localhost
+      # :port     :: The port for the mongo server instance. Default: 27017
+      # :database :: The name of the mole databaase. Default: mole_mdb
+      #
       def initialize( options={} )
         opts = default_options.merge( options )
+        validate_options( opts )
         init_mongo( opts )
       end
-      
-      # clear out db content ( used in testing... )
-      def reset!
-        logs.remove
-        features.remove
-      end
-      
-      # Dump mole info to logger
+            
+      # Dump mole info to a mongo database. There are actually 2 collections
+      # for mole information. Namely features and logs. The features collection hold
+      # application and feature information and is referenced in the mole log. The logs
+      # collections holds all information that was gathered during the request
+      # such as user, params, session, request time, etc...
       def mole( arguments )
         return if arguments.empty?       
         
@@ -41,12 +49,27 @@ module Rackamole
 
       # =======================================================================
       private
+        
+        # Clear out mole database content ( Careful there - testing only! )
+        def reset!
+          logs.remove
+          features.remove
+        end
 
         def init_mongo( opts )
           @connection = Mongo::Connection.new( opts[:host], opts[:port], :logger => opts[:logger] )
           @database   = @connection.db( opts[:database] )
           @features   = database.collection( 'features' )
           @logs       = database.collection( 'logs' )
+        end
+
+        # Validates option hash.
+        def validate_options( opts )     
+          %w[host port database].each do |option|
+            unless opts[option.to_sym]
+              raise "[MOle] Mongo store configuration error -- You must specify a value for option `:#{option}" 
+            end
+          end
         end
                 
         # Set up mongo default options ie localhost host, default mongo port and
@@ -65,7 +88,7 @@ module Rackamole
           route_info  = args.delete( :route_info )
           environment = args.delete( :environment )
         
-          row = { min_field(:app_name) => app_name, min_field(:env) => environment }
+          row = { min_field(:app_name) => app_name, min_field(:env) => environment.to_s }
           if route_info
             row[min_field(:controller)] = route_info[:controller]
             row[min_field(:action)]     = route_info[:action]
@@ -81,17 +104,12 @@ module Rackamole
         end
                                     
         # Insert a new feature in the db
-        def save_log( feature, args )               
-          type  = FEATURE
-          type  = EXCEPTION   if args[:stack]
-          type  = PERFORMANCE if args.delete(:performance)
-          
-          # BOZO !! to reduce collection space...
-          # Using cryptic key to reduce storage needs.
-          # Also narrowing date/time to ints
+        # NOTE : Using min key to reduce storage needs. I know not that great for higher level api's :-(
+        # also saving date and time as ints. same deal...
+        def save_log( feature, args )        
           now = Time.now
           row = {
-            min_field( :type )       => type,
+            min_field( :type )       => args[:type],
             min_field( :feature_id ) => feature['_id'].to_s,
             min_field( :date_id )    => ("%4d%02d%02d" %[now.year, now.month, now.day]).to_i,
             min_field( :time_id )    => ("%02d%02d%02d" %[now.hour, now.min, now.sec] ).to_i
@@ -111,6 +129,7 @@ module Rackamole
         # Normalize all accessors to 3 chars. 
         def field_map
           @field_map ||= {
+            :env          => :env,
             :app_name     => :app,
             :context      => :ctx,
             :controller   => :ctl,
@@ -131,6 +150,7 @@ module Rackamole
             :session      => :ses,
             :params       => :par,
             :ruby_version => :ver,
+            :fault        => :msg,
             :stack        => :sta
           }
         end      

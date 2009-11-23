@@ -1,9 +1,15 @@
 module Rackamole
   module Interceptor
     
+    # === For Rails only!
+    #
+    # Rails handles raised exception in a special way. 
+    # Thus special care need to be taken to enable exception to bubble up
+    # to the mole.
+    #
     # In order for the mole to trap framework exception, you must include
     # the interceptor in your application controller.
-    # ie include Wackamole::Interceptor
+    # ie include Rackamole::Interceptor
     def self.included( base )
       base.send( :alias_method_chain, :rescue_action_in_public, :mole )
       base.send( :alias_method_chain, :rescue_action_locally, :mole )

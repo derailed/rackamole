@@ -2,21 +2,59 @@ require 'hitimes'
 require 'json'
 require 'mongo'
 
+# BOZO !! - Need args validator or use dsl as the args are out of control...
 module Rack
   class Mole
     
-    # Initialize The Mole with the possible options
-    # <tt>:app_name</tt>    - The name of the application [Default: Moled App]
-    # <tt>:environment</tt> - The environment for the application ie :environment => RAILS_ENV
-    # <tt>:perf_threshold</tt> - Any request taking longer than this value will get moled [Default: 10]    
-    # <tt>:moleable</tt>    - Enable/Disable the MOle [Default:true]
-    # <tt>:store</tt>       - The storage instance ie log file or mongodb [Default:stdout]
-    # <tt>:user_key</tt>    - If session is enable, the session key for the user name or user_id. ie :user_key => :user_name 
+    # Initialize The Mole rack component. It is recommended that you specify at a minimum a user_key to track
+    # interactions on a per user basis. If you wish to use the mole for the same application in different 
+    # environments you should set the environment attribute RAILS_ENV for example. The perf_threshold setting 
+    # is also recommended to get performance notifications should your web app start sucking. 
+    # By default your app will be moleable upon installation and you should see mole features spewing out in your 
+    # logs. This is the default setting. Alternatively you can store mole information in a mongo database by 
+    # specifying a different store option.
+    #
+    # === Options
+    #
+    # :app_name       :: The name of the application (Default: Moled App)
+    # :environment    :: The environment for the application ie :environment => RAILS_ENV
+    # :perf_threshold :: Any request taking longer than this value will get moled. Default: 10secs
+    # :moleable       :: Enable/Disable the MOle (Default:true)
+    # :store          :: The storage instance ie log file or mongodb [Default:stdout]
+    # :user_key       :: If sessions are enable, this represents the session key for the user name or 
+    #                    user_id.
+    # ==
+    #  If the username resides in the session hash with key :user_name the you can use:
+    #    :user_key => :user_name
+    #  Or you can eval it on the fly - though this will be much slower and not recommended
+    #    :user_key => { :session_key => :user_id, :extractor => lambda{ |id| User.find( id ).name} }
+    # ==
+    #
+    # :twitter_auth  :: You can setup the MOle twit interesting events to a private (public if you indulge pain!) twitter account.
+    #                   Specified your twitter account information using a hash with :username and :password key
+    # :twitt_on      :: You must configure your twitter auth and configuration using this hash. By default this option is disabled.
+    # ==
+    #   :twitt_on => { :enabled  => false, :features => [Rackamole.perf, Rackamole.fault] }
+    # ==
+    # ==== BOZO! currently there is not support for throttling or monitoring these alerts. 
+    # ==
+    # :emails        :: The mole can be configured to send out emails bases on interesting mole features.
+    #                   This feature uses actionmailer. You must specify a hash for the from and to options.
+    # ==
+    #   :emails => { :from => 'fred@acme.com', :to => ['blee@acme.com', 'doh@acme.com'] }
+    # ==
+    # :mail_on      :: Hash for email alert triggers. May be enabled or disabled per env settings. Default is disabled
+    # ==
+    #   :mail_on => {:enabled => true, :features => [Rackamole.perf, Rackamole.fault] }
     def initialize( app, opts={} )
       @app = app
       init_options( opts )
+      validate_options
     end
-            
+          
+    # Entering the MOle zone...
+    # Watches incoming requests and report usage information. The mole will also track request that
+    # are taking longer than expected and also report any requests that are raising exceptions. 
     def call( env )
       # Bail if application is not moleable
       return @app.call( env ) unless moleable?
@@ -27,27 +65,22 @@ module Rack
           status, headers, body = @app.call( env )
         rescue => boom
           env['mole.exception'] = boom
-          @store.mole( mole_info( env, elapsed, status, headers, body ) )
+          mole_feature( env, elapsed, status, headers, body )
           raise boom
         end
       end
-      @store.mole( mole_info( env, elapsed, status, headers, body ) )
+      mole_feature( env, elapsed, status, headers, body )
       return status, headers, body
     end 
 
   # ===========================================================================  
   private
        
+    attr_reader :options #:nodoc:
+        
     # Load up configuration options
     def init_options( opts )
-      options          = default_options.merge( opts )      
-      @environment     = options[:environment]
-      @perf_threshold  = options[:perf_threshold]
-      @moleable        = options[:moleable]
-      @app_name        = options[:app_name]
-      @user_key        = options[:user_key]
-      @store           = options[:store]
-      @excluded_paths  = options[:excluded_paths]
+      @options = default_options.merge( opts )      
     end
     
     # Mole default options
@@ -57,13 +90,61 @@ module Rack
         :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
         :moleable        =>  true,
         :perf_threshold  =>  10,
-        :store           =>  Rackamole::Store::Log.new
+        :store           =>  Rackamole::Store::Log.new,
+        :twitt_on        =>  { :enabled => false, :features => [Rackamole.perf, Rackamole.fault] },
+        :mail_on         =>  { :enabled => false, :features => [Rackamole.perf, Rackamole.fault] }
       }
     end
-       
+           
+    # Validates all configured options... Throws error if invalid configuration
+    def validate_options
+      %w[app_name moleable perf_threshold store].each do |k|
+        raise "[M()le] -- Unable to locate required option key `#{k}" unless options[k.to_sym]
+      end
+    end
+    
+    # Send moled info to store and potentially send out alerts...
+    def mole_feature( env, elapsed, status, headers, body )
+      attrs = mole_info( env, elapsed, status, headers, body )
+      
+      # send info to configured store
+      options[:store].mole( attrs )
+      
+      # send email alert ?
+      if configured?( :emails, [:from, :to] ) and alertable?( options[:mail_on], attrs[:type] )
+        Rackamole::Alert::Emole.deliver_alert( options[:emails][:from], options[:emails][:to], attrs ) 
+      end
+      
+      # send twitter alert ?
+      if configured?( :twitter_auth, [:username, :password] ) and alertable?( options[:twitt_on], attrs[:type] )
+        twitt.send_alert( attrs ) 
+      end      
+    rescue => boom
+      $stderr.puts "!! MOLE RECORDING CRAPPED OUT !! -- #{boom}"
+      boom.backtrace.each { |l| $stderr.puts l }
+    end
+    
+    # Check if an options is set and configured
+    def configured?( key, configs )
+      return false unless options[key]
+      configs.each { |c| return false unless options[key][c] }
+      true
+    end
+    
+    # Check if feature should be send to alert clients ie email or twitter
+    def alertable?( filters, type )
+      return false if !filters or filters.empty? or !filters[:enabled]
+      filters[:features].include?( type )
+    end
+    
+    # Create or retrieve twitter client
+    def twitt
+      @twitt ||= Rackamole::Alert::Twitt.new( options[:twitter_auth][:username], options[:twitter_auth][:password] )
+    end
+        
     # Check if this request should be moled according to the exclude filters        
     def mole_request?( request )
-      @excluded_paths.each do |exclude_path|
+      options[:excluded_paths].each do |exclude_path|
         return false if request.path.match( exclude_path )
       end
       true
@@ -87,19 +168,21 @@ module Rack
            
       # BOZO !! This could be slow if have to query db to get user name...
       # Preferred store username in session and give at key
-      if session and @user_key
-        if @user_key.instance_of? Hash
-          user_id  = session[ @user_key[:session_key] ]
-          if @user_key[:extractor]
-            user_name = @user_key[:extractor].call( user_id )
+      user_key = options[:user_key]
+      if session and user_key
+        if user_key.instance_of? Hash
+          user_id  = session[ user_key[:session_key] ]
+          if user_key[:extractor]
+            user_name = user_key[:extractor].call( user_id )
           end
         else
-          user_name = session[@user_key]
+          user_name = session[user_key]
         end
       end
-            
-      info[:app_name]     = @app_name
-      info[:environment]  = @environment || "Unknown"
+          
+      info[:type]         = (elapsed and elapsed > options[:perf_threshold] ? Rackamole.perf : Rackamole.feature)
+      info[:app_name]     = options[:app_name]
+      info[:environment]  = options[:environment] || "Unknown"
       info[:user_id]      = user_id      if user_id
       info[:user_name]    = user_name || "Unknown"
       info[:ip]           = ip
@@ -107,7 +190,6 @@ module Rack
       info[:host]         = env['SERVER_NAME']
       info[:software]     = env['SERVER_SOFTWARE']
       info[:request_time] = elapsed if elapsed
-      info[:performance]  = (elapsed and elapsed > @perf_threshold)
       info[:url]          = request.url
       info[:method]       = env['REQUEST_METHOD']
       info[:path]         = request.path
@@ -129,13 +211,12 @@ module Rack
       exception = env['mole.exception']
       if exception
         info[:ruby_version]   = %x[ruby -v]
+        info[:fault]          = exception.to_s
         info[:stack]          = trim_stack( exception )
+        info[:type]           = Rackamole.fault
         env['mole.exception'] = nil
       end      
       info
-    rescue => boom
-      $stderr.puts "!! MOLE RECORDING CRAPPED OUT !! -- #{boom}"
-      boom.backtrace.each { |l| $stderr.puts l }
     end
         
     # Attempts to detect browser type from agent info.
@@ -162,7 +243,7 @@ module Rack
             
     # Checks if this application is moleable
     def moleable?
-      @moleable
+      options[:moleable]
     end
     
     # Fetch route info if any...

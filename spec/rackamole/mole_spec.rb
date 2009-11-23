@@ -1,5 +1,4 @@
 require File.join(File.dirname(__FILE__), %w[.. spec_helper])
-# require 'actionpack'
 
 describe Rack::Mole do
   include Rack::Test::Methods
@@ -55,23 +54,23 @@ describe Rack::Mole do
       app( 
         :app_name       => "Test App", 
         :environment    => :test,
-        :perf_threshold => 0.1,
-        :user_key       => { :session_key => :user_id, :extractor => lambda{ |k| "Test user #{k}"} },
+        :perf_threshold => 0.1,        
+        :user_key       => { :session_key => :user_id, :extractor => lambda{ |k| "Fernand (#{k})"} },
         :store          => @test_store )
     end
     
     it "should set the mole meta correctly" do
-      get "/", nil, @test_env
+      get "/fred/blee", nil, @test_env
       @test_store.mole_result[:app_name].should    == "Test App"
       @test_store.mole_result[:environment].should == :test
       @test_store.mole_result[:user_id].should     == 100
-      @test_store.mole_result[:user_name].should   == 'Test user 100'
+      @test_store.mole_result[:user_name].should   == 'Fernand (100)'
       @test_store.mole_result[:ip].should          == '1.1.1.1'
       @test_store.mole_result[:browser].should     == 'Firefox'
       @test_store.mole_result[:method].should      == 'GET'
-      @test_store.mole_result[:url].should         == 'http://example.org/'
-      @test_store.mole_result[:path].should        == '/'
-      @test_store.mole_result[:performance].should == false
+      @test_store.mole_result[:url].should         == 'http://example.org/fred/blee'
+      @test_store.mole_result[:path].should        == '/fred/blee'
+      @test_store.mole_result[:type].should        == Rackamole.feature
       @test_store.mole_result[:params].should      be_nil
       @test_store.mole_result[:session].should_not be_nil
       @test_store.mole_result[:session].should    == { :user_id => '100' }
@@ -81,8 +80,10 @@ describe Rack::Mole do
       begin
         raise 'Oh snap!'
       rescue => boom
-        get "/", nil, @test_env.merge( { 'mole.exception' => boom } )
+        get "/crap/out", nil, @test_env.merge( { 'mole.exception' => boom } )
+        @test_store.mole_result[:type].should  == Rackamole.fault
         @test_store.mole_result[:stack].should have(4).items
+        @test_store.mole_result[:fault].should == 'Oh snap!'        
       end
     end
         
@@ -108,6 +109,57 @@ describe Rack::Mole do
       @test_store.mole_result[:user_id].should   be_nil
       @test_store.mole_result[:user_name].should == 'Fernand'
     end
+  end
+  
+  describe '#alertable?' do
+    before( :each ) do
+      @filter = { :enabled => true, :features => [Rackamole.perf, Rackamole.fault] }
+      @rack = Rack::Mole.new( nil )
+    end
+    
+    it "should return true if a feature can be twitted on" do
+      @rack.send( :alertable?, @filter, Rackamole.perf ).should == true
+    end
+    
+    it "should fail if the type is not in range" do
+      @rack.send( :alertable?, @filter, 10 ).should == false
+    end
+    
+    it "should fail if this is not an included feature" do
+      @rack.send( :alertable?, @filter, Rackamole.feature ).should == false
+    end
+    
+    it "should always return false if the alert is disabled" do
+      @filter[:enabled] = false
+      @rack.send( :alertable?, @filter, Rackamole.perf ).should == false
+    end
+    
+    it "should fail if the alert is not configured" do
+      @rack.send( :alertable?, nil, Rackamole.perf ).should == false
+    end    
+  end
+
+  describe '#configured?' do
+    before( :each ) do
+      options = {
+        :twitter_auth => { :username => 'Fernand', :password => "Blee" },
+        :twitt_on     => { :enabled => true, :features => [Rackamole.perf, Rackamole.fault] }
+      }
+      @rack = Rack::Mole.new( nil, options )
+    end
+    
+    it "should return true if an option is correctly configured" do
+      @rack.send( :configured?, :twitter_auth, [:username, :password] ).should == true
+      @rack.send( :configured?, :twitt_on, [:enabled, :features] ).should == true
+    end
+    
+    it "should fail is an option is not set" do
+      @rack.send( :configured?, :twitter, [:username, :password] ).should == false
+    end
+    
+    it "should fail is an option is not correctly configured" do
+      @rack.send( :configured?, :twitter_auth, [:username, :pwd] ).should == false
+    end    
   end
   
   describe '#id_browser' do

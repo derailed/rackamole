@@ -9,9 +9,9 @@ describe Rackamole::Store::Log do
       @store = Rackamole::Store::Log.new( @test_file )
         
       @args = OrderedHash.new
+      @args[:type]         = Rackamole.feature
       @args[:app_name]     = "Test app"
       @args[:environment]  = :test
-      @args[:perf_issue]   = false
       @args[:ip]           = "1.1.1.1"
       @args[:browser]      = "Ibrowse"
       @args[:user_id]      = 100
@@ -32,7 +32,9 @@ describe Rackamole::Store::Log do
     end
 
     it "should mole an exception correctly" do
-      @args[:stack] = [ 'Oh snap!' ]
+      @args[:type]         = Rackamole.fault
+      @args[:fault]        = "Shiet"      
+      @args[:stack]        = [ 'Oh snap!' ]
       @args[:ruby_version] = 'ruby 1.8.6 (2007-03-13 patchlevel 0) [i686-darwin8.10.1]'
 
       @store.mole( @args )
@@ -42,7 +44,7 @@ describe Rackamole::Store::Log do
     end
     
     it "should mole a performance issue correctly" do
-      @args[:performance] = true
+      @args[:type] = Rackamole.perf
       @store.mole( @args )
       results = File.read( @test_file ).gsub( /.* Mole \:\s/, '' )
       expected = File.read( File.join( File.dirname(__FILE__), %w[.. .. expected_results mole_perf.log] ) )    

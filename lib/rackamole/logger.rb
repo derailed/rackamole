@@ -5,7 +5,7 @@ module Rackamole
   class Logger
     class ConfigurationError < StandardError ; end  #:nodoc:
 
-    attr_reader :log # here for testing, don't really use it.
+    attr_reader :log #:nodoc:
 
     extend Forwardable
     def_delegators :@log, :debug, :warn, :info, :error, :fatal 
@@ -47,7 +47,10 @@ module Rackamole
       }
     end
 
-    # create a new logger
+    # Creates a logger for mole usage by leveraging the most excellent logging gem.
+    # This provides for a semi persistent storage for mole information, typically set up
+    # for the console or a file. By default moled features will be sent out to the console.
+    # Alternatively you can store the moled info to a file.
     #
     def initialize( opts = {} )
       @options = ::Rackamole::Logger.default_options.merge(opts)

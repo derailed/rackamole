@@ -1,8 +1,8 @@
 ----------------------------------------------------------------------------------------------------
-MOLED FEATURE
+FEATURE m()le
+Type                 : 0
 App_name             : "Test app"
 Environment          : :test
-Perf_issue           : false
 Ip                   : "1.1.1.1"
 Browser              : "Ibrowse"
 User_id              : 100
