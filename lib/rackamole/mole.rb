@@ -30,6 +30,7 @@ module Rack
     #    :user_key => { :session_key => :user_id, :extractor => lambda{ |id| User.find( id ).name} }
     # ==
     #
+    # :excluded_paths:: Exclude paths that you do not wish to mole by specifying an array of regular expresssions.
     # :twitter_auth  :: You can setup the MOle twit interesting events to a private (public if you indulge pain!) twitter account.
     #                   Specified your twitter account information using a hash with :username and :password key
     # :twitt_on      :: You must configure your twitter auth and configuration using this hash. By default this option is disabled.
