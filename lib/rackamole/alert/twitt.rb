@@ -35,11 +35,11 @@ module Rackamole::Alert
     # args :: The moled info for a given feature. 
     #
     def send_alert( args )
-      twitt_msg = "#{args[:app_name]}:#{args[:host]}\n#{args[:user_name]} : #{display_feature(args)}"
+      twitt_msg = "#{args[:app_name]} on #{format_host(args[:host])} - #{args[:user_name]}\n#{display_feature(args)}"
       twitt_msg = case args[:type]
-        when Rackamole.feature : "[Feature] -- #{twitt_msg}"
-        when Rackamole.perf    : "[Perf]    -- #{twitt_msg} : #{args[:request_time]} secs"
-        when Rackamole.fault   : "[Fault]   -- #{twitt_msg} : #{args[:fault]}"
+        when Rackamole.feature : "[Feature] #{twitt_msg}"
+        when Rackamole.perf    : "[Perf] #{twitt_msg}\n#{format_time(args[:request_time])} secs"
+        when Rackamole.fault   : "[Fault] #{twitt_msg}\n#{args[:fault]}"
         else nil
       end      
       twitt.status( :post, truncate( twitt_msg ) ) if twitt_msg
@@ -63,6 +63,17 @@ module Rackamole::Alert
          "#{args[:route_info][:controller]}##{args[:route_info][:action]}"
        end
 
+      # Format host ie fred@blee.com => fred
+      def format_host( host )
+        return host.gsub( /@.+/, '' ) if host =~ /@/
+        host
+      end
+      
+      # Format precision on request time
+      def format_time( time )
+        ("%4.2f" % time).to_f
+      end
+      
       # Truncate for twitt max size       
       def truncate(text, length = 140, truncate_string = "...")
         return "" if text.nil?

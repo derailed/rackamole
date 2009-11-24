@@ -36,7 +36,7 @@ describe Rackamole::Alert::Twitt do
       # client.should_receive( :new ).exactly(1).with( 'fernand', 'blee' )
       client.should_receive( :status ).once
     
-      @alert.send_alert( @args ).should == "[Feature] -- Test:Fred\nFernand : /blee/fred"
+      @alert.send_alert( @args ).should == "[Feature] Test on Fred - Fernand\n/blee/fred"
     end
   
     it "should twitt a perf alert correctly" do
@@ -48,7 +48,7 @@ describe Rackamole::Alert::Twitt do
       @alert.should_receive( :twitt ).once.and_return( client )
       client.should_receive( :status ).once
     
-      @alert.send_alert( @args ).should == "[Perf]    -- Test:Fred\nFernand : /blee/fred : 10.0 secs"
+      @alert.send_alert( @args ).should == "[Perf] Test on Fred - Fernand\n/blee/fred\n10.0 secs"
     end
 
     it "should twitt a perf alert correctly" do
@@ -60,9 +60,28 @@ describe Rackamole::Alert::Twitt do
       @alert.should_receive( :twitt ).once.and_return( client )
       client.should_receive( :status ).once
     
-      @alert.send_alert( @args ).should == "[Fault]   -- Test:Fred\nFernand : /blee/fred : Oh snap!"
+      @alert.send_alert( @args ).should == "[Fault] Test on Fred - Fernand\n/blee/fred\nOh snap!"
+    end
+  end
+
+  describe "#format_time" do
+    it "should format a request time correctly" do
+      @alert.send( :format_time, 12.1234455 ).should == 12.12
+    end
+  end
+  
+  describe "#format_host" do
+    it "should format a host with domain name correctly" do
+      @alert.send( :format_host, 'blee@acme.com' ).should == 'blee'
+    end
+    
+    it "should deal with ip host" do
+      @alert.send( :format_host, '1.1.1.1' ).should == '1.1.1.1'
     end
 
+    it "should deal with aliases" do
+      @alert.send( :format_host, 'fred' ).should == 'fred'
+    end
   end
   
 end

@@ -21,7 +21,7 @@ interactions and leverage these findings for the next iteration of your applicat
 * Developer:  Fernand Galiana
 * Blog:       http://www.liquidrail.com
 * Site:       http://rackamole.com
-* Twitter:    https://twitter.com/rackamole
+* Twitter:    http://twitter.com/rackamole
 * Forum:      http://groups.google.com/group/rackamole
 * Git:        git://github.com/derailed/rackamole.git
 

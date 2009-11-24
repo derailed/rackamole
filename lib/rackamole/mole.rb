@@ -87,10 +87,11 @@ module Rack
     # Mole default options
     def default_options
       { 
+        :moleable        =>  true,        
         :app_name        =>  "Moled App",
+        :environment     =>  'test',
         :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
-        :moleable        =>  true,
-        :perf_threshold  =>  10,
+        :perf_threshold  =>  10.0,
         :store           =>  Rackamole::Store::Log.new,
         :twitt_on        =>  { :enabled => false, :features => [Rackamole.perf, Rackamole.fault] },
         :mail_on         =>  { :enabled => false, :features => [Rackamole.perf, Rackamole.fault] }
@@ -99,9 +100,16 @@ module Rack
            
     # Validates all configured options... Throws error if invalid configuration
     def validate_options
-      %w[app_name moleable perf_threshold store].each do |k|
+      return unless options[:moleable]
+      
+      %w[app_name environment perf_threshold store].each do |k|
         raise "[M()le] -- Unable to locate required option key `#{k}" unless options[k.to_sym]
       end
+      
+      configured?( :twitter_auth, [:username, :password] )
+      configured?( :twitt_on    , [:enabled, :features] )
+      configured?( :emails      , [:from, :to] )
+      configured?( :mail_on     , [:enabled, :features] )
     end
     
     # Send moled info to store and potentially send out alerts...
@@ -112,12 +120,12 @@ module Rack
       options[:store].mole( attrs )
       
       # send email alert ?
-      if configured?( :emails, [:from, :to] ) and alertable?( options[:mail_on], attrs[:type] )
+      if configured?( :emails, [:from, :to] ) and alertable?( :mail_on, attrs[:type] )
         Rackamole::Alert::Emole.deliver_alert( options[:emails][:from], options[:emails][:to], attrs ) 
       end
       
       # send twitter alert ?
-      if configured?( :twitter_auth, [:username, :password] ) and alertable?( options[:twitt_on], attrs[:type] )
+      if configured?( :twitter_auth, [:username, :password] ) and alertable?( :twitt_on, attrs[:type] )
         twitt.send_alert( attrs ) 
       end      
     rescue => boom
@@ -127,15 +135,21 @@ module Rack
     
     # Check if an options is set and configured
     def configured?( key, configs )
-      return false unless options[key]
-      configs.each { |c| return false unless options[key][c] }
+      return false unless options.key?(key)      
+      configs.each do |c|
+        raise "Invalid value for option #{key}. Expecting a hash with symbols #{configs.join(',')}." unless options[key].respond_to? :key?
+        unless options[key].key?(c)
+          raise "Option #{key} is not properly configured missing #{c.inspect}"
+        end
+      end
       true
     end
     
     # Check if feature should be send to alert clients ie email or twitter
-    def alertable?( filters, type )
-      return false if !filters or filters.empty? or !filters[:enabled]
-      filters[:features].include?( type )
+    def alertable?( filter, type )
+      return false unless configured?( filter, [:enabled,:features] )
+      return false unless options[filter][:enabled]
+      options[filter][:features].include?( type )
     end
     
     # Create or retrieve twitter client
