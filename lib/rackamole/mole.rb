@@ -31,22 +31,21 @@ module Rack
     # ==
     #
     # :excluded_paths:: Exclude paths that you do not wish to mole by specifying an array of regular expresssions.
-    # :twitter_auth  :: You can setup the MOle twit interesting events to a private (public if you indulge pain!) twitter account.
-    #                   Specified your twitter account information using a hash with :username and :password key
-    # :twitt_on      :: You must configure your twitter auth and configuration using this hash. By default this option is disabled.
+    # :twitter       :: Set this option to have the mole twitt certain alerts. You must configure your twitter auth 
+    #                   via the :username and :password keys and :alert_on with an array of mole types you
+    #                   wish to be notified on.
     # ==
-    #   :twitt_on => { :enabled  => false, :features => [Rackamole.perf, Rackamole.fault] }
+    #   :twitter => { :username => 'fred', :password => 'blee', :alert_on => [Rackamole.perf, Rackamole.fault] }
     # ==
     # ==== BOZO! currently there is not support for throttling or monitoring these alerts. 
     # ==
-    # :emails        :: The mole can be configured to send out emails bases on interesting mole features.
-    #                   This feature uses actionmailer. You must specify a hash for the from and to options.
+    # :email        :: The mole can be configured to send out emails bases on interesting mole features.
+    #                  This feature uses actionmailer. You must specify a hash with the following keys :from, :to 
+    #                  and :alert_on options to indicate which mole type your wish to be alerted on.
     # ==
-    #   :emails => { :from => 'fred@acme.com', :to => ['blee@acme.com', 'doh@acme.com'] }
+    #   :email => { :from => 'fred@acme.com', :to => ['blee@acme.com', 'doh@acme.com'], :alert_on => [Rackamole.perf, Rackamole.fault]  }
     # ==
-    # :mail_on      :: Hash for email alert triggers. May be enabled or disabled per env settings. Default is disabled
-    # ==
-    #   :mail_on => {:enabled => true, :features => [Rackamole.perf, Rackamole.fault] }
+    #
     def initialize( app, opts={} )
       @app = app
       init_options( opts )
@@ -92,9 +91,7 @@ module Rack
         :environment     =>  'test',
         :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
         :perf_threshold  =>  10.0,
-        :store           =>  Rackamole::Store::Log.new,
-        :twitt_on        =>  { :enabled => false, :features => [Rackamole.perf, Rackamole.fault] },
-        :mail_on         =>  { :enabled => false, :features => [Rackamole.perf, Rackamole.fault] }
+        :store           =>  Rackamole::Store::Log.new
       }
     end
            
@@ -106,10 +103,9 @@ module Rack
         raise "[M()le] -- Unable to locate required option key `#{k}" unless options[k.to_sym]
       end
       
-      configured?( :twitter_auth, [:username, :password] )
-      configured?( :twitt_on    , [:enabled, :features] )
-      configured?( :emails      , [:from, :to] )
-      configured?( :mail_on     , [:enabled, :features] )
+      # Barf early if something is wrong in the configuration
+      configured?( :twitter, [:username, :password, :alert_on], true )
+      configured?( :email  , [:from, :to, :alert_on], true )
     end
     
     # Send moled info to store and potentially send out alerts...
@@ -120,12 +116,12 @@ module Rack
       options[:store].mole( attrs )
       
       # send email alert ?
-      if configured?( :emails, [:from, :to] ) and alertable?( :mail_on, attrs[:type] )
-        Rackamole::Alert::Emole.deliver_alert( options[:emails][:from], options[:emails][:to], attrs ) 
+      if alertable?( :email, attrs[:type] )
+        Rackamole::Alert::Emole.deliver_alert( options[:email][:from], options[:email][:to], attrs ) 
       end
       
       # send twitter alert ?
-      if configured?( :twitter_auth, [:username, :password] ) and alertable?( :twitt_on, attrs[:type] )
+      if alertable?( :twitter, attrs[:type] )
         twitt.send_alert( attrs ) 
       end      
     rescue => boom
@@ -134,12 +130,13 @@ module Rack
     end
     
     # Check if an options is set and configured
-    def configured?( key, configs )
-      return false unless options.key?(key)      
+    def configured?( key, configs, optional=true )
+      return false if optional and !options.has_key?(key)
+      raise "Missing option key :#{key}" unless options.has_key?(key)
       configs.each do |c|
-        raise "Invalid value for option #{key}. Expecting a hash with symbols #{configs.join(',')}." unless options[key].respond_to? :key?
+        raise "Invalid value for option :#{key}. Expecting a hash with symbols [#{configs.join(',')}]" unless options[key].respond_to? :key?
         unless options[key].key?(c)
-          raise "Option #{key} is not properly configured missing #{c.inspect}"
+          raise "Option :#{key} is not properly configured. Missing #{c.inspect} in [#{options[key].keys.sort{|a,b| a.to_s <=> b.to_s}.join(',')}]"
         end
       end
       true
@@ -147,14 +144,14 @@ module Rack
     
     # Check if feature should be send to alert clients ie email or twitter
     def alertable?( filter, type )
-      return false unless configured?( filter, [:enabled,:features] )
-      return false unless options[filter][:enabled]
-      options[filter][:features].include?( type )
+      return false unless configured?( filter, [:alert_on] )
+      return false unless options[filter][:alert_on]
+      options[filter][:alert_on].include?( type )
     end
     
     # Create or retrieve twitter client
     def twitt
-      @twitt ||= Rackamole::Alert::Twitt.new( options[:twitter_auth][:username], options[:twitter_auth][:password] )
+      @twitt ||= Rackamole::Alert::Twitt.new( options[:twitter][:username], options[:twitter][:password] )
     end
         
     # Check if this request should be moled according to the exclude filters        

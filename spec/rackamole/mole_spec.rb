@@ -114,12 +114,20 @@ describe Rack::Mole do
   describe '#alertable?' do
     before( :each ) do
       @rack = Rack::Mole.new( nil, 
-        :twitt_on => { :enabled => true , :features => [Rackamole.perf, Rackamole.fault] },
-        :mail_on  => { :enabled => false, :features => [Rackamole.perf, Rackamole.fault, Rackamole.feature] }  )
+        :twitter => { 
+          :username => 'fred', 
+          :password => 'blee', 
+          :alert_on => [Rackamole.perf, Rackamole.fault] 
+        },
+        :email => { 
+          :from     => 'fred', 
+          :to       => 'blee', 
+          :alert_on => [Rackamole.perf, Rackamole.fault, Rackamole.feature] 
+        } )
     end
     
     it "should succeeed if a feature can be twitted on" do
-      @rack.send( :alertable?, :twitt_on, Rackamole.perf ).should == true
+      @rack.send( :alertable?, :twitter, Rackamole.perf ).should == true
     end
     
     it "should fail if the type is not in range" do
@@ -127,15 +135,11 @@ describe Rack::Mole do
     end
     
     it "should fail if this is not an included feature" do
-      @rack.send( :alertable?, :twitt_on, Rackamole.feature ).should == false
+      @rack.send( :alertable?, :twitter, Rackamole.feature ).should == false
     end
     
-    it "should always return false if the alert is disabled" do
+    it "should fail if an alert is not configured" do
       @rack.send( :alertable?, :mail_on, Rackamole.perf ).should == false
-    end
-    
-    it "should fail if the alert is not configured" do
-      @rack.send( :alertable?, :fred, Rackamole.perf ).should == false
     end    
   end
 
@@ -143,31 +147,32 @@ describe Rack::Mole do
     before( :each ) do
       options = {
         :blee         => [1,2,3],
-        :twitter_auth => { :username => 'Fernand', :password => "Blee" },
-        :twitt_on     => { :enabled => true, :features => [Rackamole.perf, Rackamole.fault] }
+        :twitter      => { :username => 'Fernand', :password => "Blee", :alert_on => [Rackamole.perf, Rackamole.fault] },
       }
       @rack = Rack::Mole.new( nil, options )
     end
     
     it "should return true if an option is correctly configured" do
-      @rack.send( :configured?, :twitter_auth, [:username, :password] ).should == true
-      @rack.send( :configured?, :twitt_on, [:enabled, :features] ).should == true
+      @rack.send( :configured?, :twitter, [:username, :password] ).should == true
+      @rack.send( :configured?, :twitter, [:alert_on] ).should            == true
     end
     
     it "should fail if an option is not set" do
-      @rack.send( :configured?, :twitter, [:username, :password] ).should == false
+      lambda {      
+        @rack.send( :configured?, :twitter, [:username, :password, :blee] )
+      }.should raise_error(RuntimeError, /Option \:twitter is not properly configured. Missing \:blee in \[alert_on,password,username\]/)
     end
 
     it "should fail if an option is not a hash" do
       lambda {
         @rack.send( :configured?, :blee, [:username, :pwd] )
-      }.should raise_error(RuntimeError, /Invalid value for option blee. Expecting a hash with symbols username,pwd/ )
-    end    
+      }.should raise_error(RuntimeError, /Invalid value for option \:blee\. Expecting a hash with symbols \[username,pwd\]/ )
+    end
     
     it "should fail if an option is not correctly configured" do
       lambda {
-        @rack.send( :configured?, :twitter_auth, [:username, :pwd] )
-      }.should raise_error(RuntimeError, /missing :pwd/ )
+        @rack.send( :configured?, :fred, [:username, :pwd], false )
+      }.should raise_error(RuntimeError, /Missing option key \:fred/ )
     end    
   end
   
