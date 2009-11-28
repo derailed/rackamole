@@ -30,6 +30,7 @@ describe Rackamole::Store::MongoDb do
       @args[:method]       = 'GET'
       @args[:params]       = { :blee => "duh".to_json }
       @args[:session]      = { :fred => 10.to_json }
+      @args[:created_at]   = Time.now.utc
     end
     
     it "should mole a context based feature correctly" do

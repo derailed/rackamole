@@ -4,8 +4,21 @@ describe Rack::Mole do
   include Rack::Test::Methods
     
   before :each do
-    @response = [ 200, {"Content-Type" => "text/plain"}, ["success"] ]
-    @test_env = { 'rack.session' => { :user_id => 100 }, 'HTTP_X_FORWARDED_FOR' => '1.1.1.1', 'HTTP_USER_AGENT' => "Firefox" }    
+    @response   = [ 200, {"Content-Type" => "text/plain"}, ["success"] ]
+    @test_store = TestStore.new    
+    @test_env   = { 
+      'rack.session'         => { :user_id => 100, :username => "fernand" }, 
+      'HTTP_X_FORWARDED_FOR' => '1.1.1.1', 
+      'HTTP_USER_AGENT'      => "Firefox" 
+    }
+    @opts       = {
+      :app_name       => "Test App", 
+      :environment    => :test,
+      :excluded_paths => ['/should_bail'],      
+      :perf_threshold => 0.1,
+      :user_key       => :username,
+      :store          => @test_store
+    }
   end
       
   class TestStore
@@ -32,58 +45,158 @@ describe Rack::Mole do
     end
   end
 
-  it "should mole a framwework exception correctly" do
-    @test_store = TestStore.new
-    error_app( 
-      :app_name       => "Test App", 
-      :environment    => :test,
-      :perf_threshold => 0.1,
-      :user_key       => { :session_key => :user_id, :extractor => lambda{ |k| "Test user #{k}"} },
-      :store          => @test_store )
+  def slow_app( opts={} )
+    response = @response
+    @app ||= Rack::Builder.new do
+      use Rack::Lint
+      use Rack::Mole, opts
+      run lambda { |env| sleep(0.2); response }
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  describe "fault duplicate" do 
+    before( :each ) do
+      error_app( @opts )
+    end
+        
+    it "should mole a fault issue correctly" do      
+      begin
+        get "/", nil, @test_env
+      rescue
+        last_request.env['mole.stash'].should_not be_nil
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
+        fault.should_not be_nil
+        fault.count.should == 1
+      end
+    end
+
+    it "should trap a recuring fault on given path correctly" do
+      env = @test_env
+      2.times do |i|
+        begin
+          get "/", nil, env
+        rescue
+          last_request.env['mole.stash'].should_not be_nil
+          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
+          fault.should_not be_nil
+          fault.count.should == i+1
+          env = last_request.env
+        end
+      end
+    end
+
+    it "should trap a recuring fault on different path correctly" do    
+      env = @test_env
+      2.times do |i|
+        begin        
+          env['PATH_INFO'] = "/#{i}"
+          get "/#{i}", nil, env
+        rescue
+          last_request.env['mole.stash'].should_not be_nil
+          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )          
+          fault.should_not be_nil
+          fault.count.should == i+1
+          env = last_request.env
+        end
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  describe "performance duplicate" do 
+    before( :each ) do
+      @test_store = TestStore.new
+      slow_app( @opts )
+    end
     
+    it "should mole a perf issue correctly" do    
+      get "/", nil, @test_env
+      last_request.env['mole.stash'].should_not be_nil    
+      perf = last_request.env['mole.stash'].send( :find_perf, "/" )
+      perf.should_not be_nil
+      perf.count.should == 1
+    end
+
+    it "should trap a recuring perf on given path correctly" do
+      env = @test_env
+      2.times do |i| 
+        get "/", nil, env
+        perf = last_request.env['mole.stash'].send( :find_perf, "/" )
+        perf.should_not be_nil
+        perf.count.should == i+1
+        env = last_request.env
+      end
+    end
+
+    it "should trap a recuring perf on different path correctly" do    
+      env = @test_env
+      2.times do |i|
+        env['PATH_INFO'] = "/#{i}"
+        get "/#{i}", nil, env
+        last_request.env['mole.stash'].should_not be_nil
+        count = 0
+        while count <= i
+          perf = last_request.env['mole.stash'].send( :find_perf, "/#{count}" )
+          perf.should_not be_nil
+          perf.count.should == 1
+          count += 1
+        end
+        env = last_request.env
+      end
+    end
+  end
+  
+  # ---------------------------------------------------------------------------  
+  it "should mole a framwework exception correctly" do
+    error_app( @opts )    
     begin
       get "/", nil, @test_env
     rescue 
-      @test_store.mole_result[:stack].should have(4).items      
+      @test_store.mole_result[:stack].should have(4).items
+      last_request.env['mole.stash'].should_not be_nil
+      fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
+      fault.should_not be_nil
+      fault.count.should == 1
     end
   end
     
+  # ---------------------------------------------------------------------------    
   describe 'moling a request' do
     before :each do
-      @test_store = TestStore.new
-      app( 
-        :app_name       => "Test App", 
-        :environment    => :test,
-        :perf_threshold => 0.1,        
-        :user_key       => { :session_key => :user_id, :extractor => lambda{ |k| "Fernand (#{k})"} },
-        :store          => @test_store )
+      app( @opts )
     end
     
     it "should set the mole meta correctly" do
       get "/fred/blee", nil, @test_env
-      @test_store.mole_result[:app_name].should    == "Test App"
-      @test_store.mole_result[:environment].should == :test
-      @test_store.mole_result[:user_id].should     == 100
-      @test_store.mole_result[:user_name].should   == 'Fernand (100)'
-      @test_store.mole_result[:ip].should          == '1.1.1.1'
-      @test_store.mole_result[:browser].should     == 'Firefox'
-      @test_store.mole_result[:method].should      == 'GET'
-      @test_store.mole_result[:url].should         == 'http://example.org/fred/blee'
-      @test_store.mole_result[:path].should        == '/fred/blee'
-      @test_store.mole_result[:type].should        == Rackamole.feature
-      @test_store.mole_result[:params].should      be_nil
-      @test_store.mole_result[:session].should_not be_nil
-      @test_store.mole_result[:session].should    == { :user_id => '100' }
+      @test_store.mole_result[:app_name].should     == "Test App"
+      @test_store.mole_result[:environment].should  == :test
+      @test_store.mole_result[:user_id].should      be_nil
+      @test_store.mole_result[:user_name].should    == 'fernand'
+      @test_store.mole_result[:ip].should           == '1.1.1.1'
+      @test_store.mole_result[:browser].should      == 'Firefox'
+      @test_store.mole_result[:method].should       == 'GET'
+      @test_store.mole_result[:url].should          == 'http://example.org/fred/blee'
+      @test_store.mole_result[:path].should         == '/fred/blee'
+      @test_store.mole_result[:type].should         == Rackamole.feature
+      @test_store.mole_result[:params].should       be_nil
+      @test_store.mole_result[:session].should_not  be_nil
+      @test_store.mole_result[:session].keys.should have(2).items
     end
     
     it "mole an exception correctly" do
       begin
         raise 'Oh snap!'
       rescue => boom
-        get "/crap/out", nil, @test_env.merge( { 'mole.exception' => boom } )
+        @test_env['mole.exception'] = boom
+        get "/crap/out", nil, @test_env
         @test_store.mole_result[:type].should  == Rackamole.fault
         @test_store.mole_result[:stack].should have(4).items
-        @test_store.mole_result[:fault].should == 'Oh snap!'        
+        @test_store.mole_result[:fault].should == 'Oh snap!'
+        last_request.env['mole.stash'].should_not be_nil
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:189" )
+        fault.should_not be_nil
+        fault.count.should == 1
       end
     end
         
@@ -91,26 +204,86 @@ describe Rack::Mole do
         get "/", { :blee => 'duh' }, @test_env
         @test_store.mole_result[:params].should == { :blee => "duh".to_json }
     end
+    
+    it "should not mole an exclusion" do
+      get '/should_bail', nil, @test_env      
+      @test_store.mole_result.should be_nil
+    end
   end
       
+  # ---------------------------------------------------------------------------      
   describe 'username in session' do
-    before :each do
-      @test_store = TestStore.new
-      app( 
-        :app_name       => "Test App", 
-        :environment    => :test,
-        :perf_threshold => 0.1,
-        :user_key       => :user_name,
-        :store          => @test_store )
+    it "should pickup the user name from the session correctly" do
+      app( @opts )
+      get "/", nil, @test_env      
+      @test_store.mole_result[:user_id].should   be_nil
+      @test_store.mole_result[:user_name].should == 'fernand'
     end
     
-    it "should pickup the user name from the session correctly" do
-      get "/", nil, @test_env.merge( { 'rack.session' => { :user_name => "Fernand" } } )
-      @test_store.mole_result[:user_id].should   be_nil
-      @test_store.mole_result[:user_name].should == 'Fernand'
+    it "should extract a username correctly" do
+      @opts[:user_key] = { :session_key => :user_id, :extractor => lambda { |k| "Fernand #{k}" } }    
+      app( @opts )    
+      get "/", nil, @test_env
+      @test_store.mole_result[:user_id].should   == 100
+      @test_store.mole_result[:user_name].should == 'Fernand 100'
+    end      
+  end
+
+  describe "rails env" do
+    it "should find route info correctly" do
+      RAILS_ENV = true
+      ActionController::Routing::Routes.stub!( :recognize_path ).and_return( { :controller => 'fred', :action => 'blee' } )
+      rack = Rack::Mole.new( nil )
+      
+      # routes.should_receive( 'recognize_path' ).with( 'fred', { :method => 'blee' } ).and_return(  )
+      res = rack.send( :get_route, OpenStruct.new( :path => "/", :request_method => "GET") )
+      res.should_not          be_nil
+      res[:controller].should == 'fred'
+      res[:action].should     == 'blee'
     end
   end
   
+  # ---------------------------------------------------------------------------      
+  describe 'sending alerts' do
+    it "should send out alerts on the first occurrance of a perf issue" do
+      Rackamole::Alert::Twitt.stub!( :deliver_alert )
+      Rackamole::Alert::Emole.stub!( :deliver_alert )
+
+      @opts[:twitter] = { :username => "fred", :password => "blee", :alert_on => [Rackamole.perf] }
+      @opts[:email]   = { :from => "fred", :to => ["blee"], :alert_on => [Rackamole.perf] }
+      
+      slow_app( @opts )
+      
+      Rackamole::Alert::Emole.should_receive( :deliver_alert ).once
+      Rackamole::Alert::Twitt.should_receive( :deliver_alert ).once      
+      
+      get "/", nil, @test_env
+    end    
+    
+    it "should should not send several alerts on an occurance of the same issue" do
+      Rackamole::Alert::Twitt.stub!( :deliver_alert )
+      Rackamole::Alert::Emole.stub!( :deliver_alert )
+
+      @opts[:twitter] = { :username => "fred", :password => "blee", :alert_on => [Rackamole.perf] }
+      @opts[:email]   = { :from => "fred", :to => ["blee"], :alert_on => [Rackamole.perf] }
+
+      slow_app( @opts )
+            
+      env = @test_env
+      # First time ok
+      Rackamole::Alert::Emole.should_receive( :deliver_alert ).once
+      Rackamole::Alert::Twitt.should_receive( :deliver_alert ).once      
+      get "/", nil, env
+      env = last_request.env
+      # Second time - no alerts
+      Rackamole::Alert::Emole.should_not_receive( :deliver_alert )
+      Rackamole::Alert::Twitt.should_not_receive( :deliver_alert )
+      get "/", nil, env      
+    end    
+    
+  end
+  
+  # ---------------------------------------------------------------------------  
   describe '#alertable?' do
     before( :each ) do
       @rack = Rack::Mole.new( nil, 
@@ -121,7 +294,7 @@ describe Rack::Mole do
         },
         :email => { 
           :from     => 'fred', 
-          :to       => 'blee', 
+          :to       => ['blee'], 
           :alert_on => [Rackamole.perf, Rackamole.fault, Rackamole.feature] 
         } )
     end
@@ -143,6 +316,7 @@ describe Rack::Mole do
     end    
   end
 
+  # ---------------------------------------------------------------------------
   describe '#configured?' do
     before( :each ) do
       options = {
@@ -176,6 +350,7 @@ describe Rack::Mole do
     end    
   end
   
+  # ---------------------------------------------------------------------------
   describe '#id_browser' do
     before :all do
       @rack = Rack::Mole.new( nil )

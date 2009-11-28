@@ -96,21 +96,22 @@ module Rackamole
             row[min_field(:context)] = args.delete( :path )
           end
           
-          feature = features.find_one( row )
-          return feature if feature
-          
-          id = features.save( row )
-          features.find_one( id )
+          feature = features.find_one( row, :fields => ['_id'] )
+          return feature['_id'] if feature
+
+          row[min_field(:created_at)] = args[:created_at]
+                    
+          features.save( row )
         end
                                     
         # Insert a new feature in the db
         # NOTE : Using min key to reduce storage needs. I know not that great for higher level api's :-(
         # also saving date and time as ints. same deal...
-        def save_log( feature, args )        
-          now = Time.now
+        def save_log( feature_id, args )
+          now = args.delete( :created_at )
           row = {
             min_field( :type )       => args[:type],
-            min_field( :feature_id ) => feature['_id'].to_s,
+            min_field( :feature_id ) => feature_id.to_s,
             min_field( :date_id )    => ("%4d%02d%02d" %[now.year, now.month, now.day]).to_i,
             min_field( :time_id )    => ("%02d%02d%02d" %[now.hour, now.min, now.sec] ).to_i
           }
@@ -151,7 +152,8 @@ module Rackamole
             :params       => :par,
             :ruby_version => :ver,
             :fault        => :msg,
-            :stack        => :sta
+            :stack        => :sta,
+            :created_at   => :cro
           }
         end      
     end

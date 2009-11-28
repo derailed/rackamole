@@ -1,4 +1,5 @@
 require File.join(File.dirname(__FILE__), %w[.. .. spec_helper])
+require 'chronic'
 
 describe Rackamole::Alert::Twitt do
   before( :each ) do
@@ -22,11 +23,23 @@ describe Rackamole::Alert::Twitt do
   describe '#send_alert' do
     before( :each ) do      
       @args = OrderedHash.new
-      @args[:type]      = Rackamole.feature
-      @args[:app_name]  = 'Test'
-      @args[:host]      = 'Fred'
-      @args[:user_name] = 'Fernand'
-      @args[:path]      = '/blee/fred'
+      @args[:type]       = Rackamole.feature
+      @args[:app_name]   = 'Test'
+      @args[:host]       = 'Fred'
+      @args[:user_name]  = 'Fernand'
+      @args[:path]       = '/blee/fred'
+      @args[:created_at] = Chronic.parse( "2009/11/19" )
+    end
+
+    it "should twitt a feature alert using class method correctly" do
+      twitt  = mock( Rackamole::Alert::Twitt )
+      client = Twitter::Client.stub!( :new )
+      
+      Rackamole::Alert::Twitt.should_receive( :new ).with( 'blee', 'duh').once.and_return( twitt )
+      # client.should_receive( :new ).once.and_return( client )
+      twitt.should_receive( :send_alert ).with( @args ).once.and_return( "yeah" )      
+      
+      Rackamole::Alert::Twitt.deliver_alert( "blee", "duh", @args )
     end
     
     it "should twitt a feature alert correctly" do
@@ -36,7 +49,7 @@ describe Rackamole::Alert::Twitt do
       # client.should_receive( :new ).exactly(1).with( 'fernand', 'blee' )
       client.should_receive( :status ).once
     
-      @alert.send_alert( @args ).should == "[Feature] Test on Fred - Fernand\n/blee/fred"
+      @alert.send_alert( @args ).should == "[Feature] Test on Fred - Fernand\n/blee/fred - 12:00:00"
     end
   
     it "should twitt a perf alert correctly" do
@@ -48,7 +61,7 @@ describe Rackamole::Alert::Twitt do
       @alert.should_receive( :twitt ).once.and_return( client )
       client.should_receive( :status ).once
     
-      @alert.send_alert( @args ).should == "[Perf] Test on Fred - Fernand\n/blee/fred\n10.0 secs"
+      @alert.send_alert( @args ).should == "[Perf] Test on Fred - Fernand\n/blee/fred\n10.0 secs - 12:00:00"
     end
 
     it "should twitt a perf alert correctly" do
@@ -60,7 +73,7 @@ describe Rackamole::Alert::Twitt do
       @alert.should_receive( :twitt ).once.and_return( client )
       client.should_receive( :status ).once
     
-      @alert.send_alert( @args ).should == "[Fault] Test on Fred - Fernand\n/blee/fred\nOh snap!"
+      @alert.send_alert( @args ).should == "[Fault] Test on Fred - Fernand\n/blee/fred\nOh snap! - 12:00:00"
     end
   end
 

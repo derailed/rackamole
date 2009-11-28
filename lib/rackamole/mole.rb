@@ -17,10 +17,18 @@ module Rack
     # === Options
     #
     # :app_name       :: The name of the application (Default: Moled App)
+    # :log_level      :: Rackamole logger level. (Default: info )
     # :environment    :: The environment for the application ie :environment => RAILS_ENV
     # :perf_threshold :: Any request taking longer than this value will get moled. Default: 10secs
     # :moleable       :: Enable/Disable the MOle (Default:true)
     # :store          :: The storage instance ie log file or mongodb [Default:stdout]
+    # :expiration     :: Number of seconds to expiration. The mole will not keep sending alert if a particular
+    #                    mole type has been reported in the past. This threshold specifies the limit at which
+    #                    the previously sent alerts will expire and thus will be sent again. 
+    #                    For instance, it might be the case that the app is consistently slow for a particular action.
+    #                    On the first encounter an alert will be sent ( if configured ). Any subsequent requests for this action
+    #                    will not fire an alert until the expiration threshold is hit. The default is 1 hour. 
+    #                    Setting this threshold to Rackamole::Stash::Collector::NEVER will result in alerts being fired continually.
     # :user_key       :: If sessions are enable, this represents the session key for the user name or 
     #                    user_id.
     # ==
@@ -46,18 +54,22 @@ module Rack
     #   :email => { :from => 'fred@acme.com', :to => ['blee@acme.com', 'doh@acme.com'], :alert_on => [Rackamole.perf, Rackamole.fault]  }
     # ==
     #
-    def initialize( app, opts={} )
-      @app = app
+    def initialize( app, opts={} )    
+      @app       = app
       init_options( opts )
       validate_options
+      @logger = Rackamole::Logger.new( :logger_name => 'RACKAMOLE', :log_level => options[:log_level] )
     end
           
     # Entering the MOle zone...
     # Watches incoming requests and report usage information. The mole will also track request that
     # are taking longer than expected and also report any requests that are raising exceptions. 
-    def call( env )
+    def call( env )      
       # Bail if application is not moleable
       return @app.call( env ) unless moleable?
+                  
+      @stash = env['mole.stash'] if env['mole.stash']      
+      @stash = Rackamole::Stash::Collector.new( options[:app_name], options[:environment], options[:expiration] ) unless stash
             
       status, headers, body = nil
       elapsed = Hitimes::Interval.measure do
@@ -76,7 +88,7 @@ module Rack
   # ===========================================================================  
   private
        
-    attr_reader :options #:nodoc:
+    attr_reader :options, :logger, :stash #:nodoc:
         
     # Load up configuration options
     def init_options( opts )
@@ -86,7 +98,9 @@ module Rack
     # Mole default options
     def default_options
       { 
-        :moleable        =>  true,        
+        :moleable        =>  true,    
+        :log_level       =>  :info,
+        :expiration      =>  60*60, # 1 hour    
         :app_name        =>  "Moled App",
         :environment     =>  'test',
         :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
@@ -109,24 +123,60 @@ module Rack
     end
     
     # Send moled info to store and potentially send out alerts...
-    def mole_feature( env, elapsed, status, headers, body )
-      attrs = mole_info( env, elapsed, status, headers, body )
+    def mole_feature( env, elapsed, status, headers, body )   
+      env['mole.stash'] = stash
       
+      attrs = mole_info( env, elapsed, status, headers, body )
+
+      # If nothing to mole bail out!
+      return if attrs.empty?
+
       # send info to configured store
       options[:store].mole( attrs )
       
-      # send email alert ?
-      if alertable?( :email, attrs[:type] )
-        Rackamole::Alert::Emole.deliver_alert( options[:email][:from], options[:email][:to], attrs ) 
+      # Check for dups. If we've logged this req before don't log it again...
+      unless duplicated?( env, attrs )
+        # send email alert ?
+        if alertable?( :email, attrs[:type] )
+          logger.debug ">>> Sending out email on mole type #{attrs[:type]} to #{options[:email][:to].join( ", ")}"
+          Rackamole::Alert::Emole.deliver_alert( options[:email][:from], options[:email][:to], attrs ) 
+        end
+      
+        # send twitter alert ?
+        if alertable?( :twitter, attrs[:type] )
+          logger.debug ">>> Sending out twitt on mole type #{attrs[:type]} on @#{options[:twitter][:username]}"
+          Rackamole::Alert::Twitt.deliver_alert( options[:twitter][:username], options[:twitter][:password], attrs )
+        end
+      end
+    rescue => boom
+      logger.error "!! MOLE RECORDING CRAPPED OUT !! -- #{boom}"
+      boom.backtrace.each { |l| logger.error l }
+    end
+    
+    # Check if we've already seen such an error
+    def duplicated?( env, attrs )
+      # Skip features for now...
+      return true if attrs[:type] == Rackamole.feature
+      
+      # Don't bother if expiration is set to never. ie fire alerts all the time
+      return false if options[:expiration] == Rackamole::Stash::Collector::NEVER
+      
+      now    = Time.now
+      app_id = [attrs[:app_name], attrs[:environment]].join( '_' )
+      path   = attrs[:route_info] ? "#{attrs[:route_info][:controller]}#{attrs[:route_info][:action]}" : attrs[:path]      
+                        
+      # Check expired entries
+      stash.expire!
+      
+      # check if we've seen this error before. If so stash it.
+      if attrs[:type] == Rackamole.fault
+        return stash.stash_fault( path, attrs[:stack].first, now.utc )
       end
       
-      # send twitter alert ?
-      if alertable?( :twitter, attrs[:type] )
-        twitt.send_alert( attrs ) 
+      # Check if we've seen this perf issue before. If so stash it
+      if attrs[:type] == Rackamole.perf
+        return stash.stash_perf( path, attrs[:request_time], now.utc )
       end      
-    rescue => boom
-      $stderr.puts "!! MOLE RECORDING CRAPPED OUT !! -- #{boom}"
-      boom.backtrace.each { |l| $stderr.puts l }
     end
     
     # Check if an options is set and configured
@@ -148,12 +198,7 @@ module Rack
       return false unless options[filter][:alert_on]
       options[filter][:alert_on].include?( type )
     end
-    
-    # Create or retrieve twitter client
-    def twitt
-      @twitt ||= Rackamole::Alert::Twitt.new( options[:twitter][:username], options[:twitter][:password] )
-    end
-        
+            
     # Check if this request should be moled according to the exclude filters        
     def mole_request?( request )
       options[:excluded_paths].each do |exclude_path|
@@ -166,9 +211,7 @@ module Rack
     def mole_info( env, elapsed, status, headers, body )      
       request = Rack::Request.new( env )
       info    = OrderedHash.new
-         
-      # dump( env )
-                  
+                           
       return info unless mole_request?( request )
                         
       session     = env['rack.session']      
@@ -206,6 +249,7 @@ module Rack
       info[:method]       = env['REQUEST_METHOD']
       info[:path]         = request.path
       info[:route_info]   = route if route
+      info[:created_at]   = Time.now.utc
       
       # Dump request params
       unless request.params.empty?
@@ -261,28 +305,27 @@ module Rack
     # Fetch route info if any...
     def get_route( request )
       return nil unless defined?( RAILS_ENV )
-      
       # Check for invalid route exception...
       begin
         return ::ActionController::Routing::Routes.recognize_path( request.path, {:method => request.request_method.downcase.to_sym } )
-      rescue
+      rescue => boom      
         return nil
       end
     end
     
-    # Dump env to stdout
-    # def dump( env, level=0 )
-    #   env.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
-    #     value = env[k]
-    #     if value.respond_to?(:each_pair) 
-    #       puts "%s %-#{40-level}s" % ['  '*level,k]
-    #       dump( env[k], level+1 )
-    #     elsif value.instance_of?(::ActionController::Request) or value.instance_of?(::ActionController::Response) 
-    #       puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.class ]
-    #     else
-    #       puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
-    #     end        
-    #   end
-    # end
+    # Debug - Dump env to stdout
+    def dump( env, level=0 )
+      env.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
+        value = env[k]
+        if value.respond_to?(:each_pair) 
+          puts "%s %-#{40-level}s" % ['  '*level,k]
+          dump( env[k], level+1 )
+        elsif value.instance_of?(::ActionController::Request) or value.instance_of?(::ActionController::Response) 
+          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.class ]
+        else
+          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
+        end        
+      end
+    end
   end
 end

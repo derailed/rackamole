@@ -4,7 +4,13 @@ module Rackamole::Alert
   # Leverage twitter as a notification client. You can setup a private twitter account
   # and have your moled app twitt exception/perf alerts...
   class Twitt
-                
+
+    # Twitt an alert        
+    def self.deliver_alert( username, password, attrs )
+      @twitt ||= Twitt.new( username, password )
+      @twitt.send_alert( attrs )
+    end
+            
     # This class is used to send out moled twitter notification. This feature is enabled
     # by setting both :twitter_auth and twitt_on options on the Rack::Mole. When a moled 
     # feature comes around it will be twitted on your configured account. This allow your
@@ -41,8 +47,11 @@ module Rackamole::Alert
         when Rackamole.perf    : "[Perf] #{twitt_msg}\n#{format_time(args[:request_time])} secs"
         when Rackamole.fault   : "[Fault] #{twitt_msg}\n#{args[:fault]}"
         else nil
-      end      
-      twitt.status( :post, truncate( twitt_msg ) ) if twitt_msg
+      end
+      if twitt_msg
+        twitt_msg += " - #{args[:created_at].strftime( "%H:%M:%S")}"
+        twitt.status( :post, truncate( twitt_msg ) ) 
+      end
       twitt_msg
     rescue => boom
       $stderr.puts "TWITT mole failed with #{boom}"
