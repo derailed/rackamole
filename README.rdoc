@@ -77,6 +77,22 @@ interactions and leverage these findings for the next iteration of your applicat
   This assumes that you have session enabled to identify a user if not the mole will log the user
   as 'Unknown'
   
+=== Storing moled information
+ 
+  Rackamole currently comes with a single storage strategy. More will come in the near future, but
+  currently we are using MongoDb as our default storage. The idea here is to create a database for
+  a given moled app per environment. For instance, for application 'Fred', you will need to use a 
+  separate store for Fred running in alpha mode and Fred running in production mode.
+  
+  In order to use a store, you will need to pass in the :store option. There currently 2 store 
+  types a logger and a mongo adapter. By default the store is set to log moled information to the console. 
+  To change to a mongo store simply add the following options:
+  
+  use Rack::Mole, { :app_name => "Fred", :store => Rackamole::Store::MongoDb.new( :database => 'mole_fred_alpha_mdb' ) }
+  
+  This expect a local mongo instance to be running on the default port. You can change the 
+  location by adding :host and :port options.
+  
 == LICENSE:
 
 (The MIT License)
