@@ -1,5 +1,5 @@
 == RackAMole
-  Your web application observer...
+  Observe your web applications in the wild!
   
 == DESCRIPTION:
 
@@ -27,7 +27,7 @@ interactions and leverage these findings for the next iteration of your applicat
 
 == FEATURES:
 
-* Monitors Rails or Sinatra applications
+* Monitors any rack based framework such as Rails and Sinatra
 * Captures the essence of the request as well as user information
 * Tracks performance issues based on your latency threshold
 * Tracks exceptions that might occurred during a request
@@ -36,14 +36,13 @@ interactions and leverage these findings for the next iteration of your applicat
 
 * Logging
 * Hitimes
-* MongoDb
+* MongoDb + mongo ruby adapter
 
 == INSTALL:
 
 * sudo gem install rackamole
 
-  NOTE: The gem is hosted on gemcutter.com - please update your gem sources if not 
-  already specified
+  NOTE: The gem is hosted on gemcutter.org
   
 == USAGE:
 

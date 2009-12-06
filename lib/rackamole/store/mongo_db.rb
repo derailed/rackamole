@@ -7,7 +7,7 @@ module Rackamole
     # Mongo adapter. Stores mole info to a mongo database.
     class MongoDb
       
-      attr_reader :database, :logs, :features #:nodoc:
+      attr_reader :database, :logs, :features, :users #:nodoc:
             
       # Initializes the mongo db store. MongoDb can be used as a persitent store for
       # mole information. This is a preferred store for the mole as it will allow you
@@ -41,7 +41,7 @@ module Rackamole
         args = arguments.clone
 
         # dump request info to mongo
-        save_log( save_feature( args ), args )
+        save_log( save_user( args ), save_feature( args ), args )
       rescue => mole_boom
         $stderr.puts "MOLE STORE CRAPPED OUT -- #{mole_boom}"
         $stderr.puts mole_boom.backtrace.join( "\n   " )        
@@ -54,6 +54,7 @@ module Rackamole
         def reset!
           logs.remove
           features.remove
+          users.remove
         end
 
         def init_mongo( opts )
@@ -61,6 +62,7 @@ module Rackamole
           @database   = @connection.db( opts[:database] )
           @features   = database.collection( 'features' )
           @logs       = database.collection( 'logs' )
+          @users      = database.collection( 'users' )
         end
 
         # Validates option hash.
@@ -77,12 +79,34 @@ module Rackamole
         def default_options
           {
              :host     => 'localhost',
-             :port     => 27017,
+             :port     => Mongo::Connection::DEFAULT_PORT,
              :database => 'mole_mdb'
           }
         end
         
-        # Find or create a mole feature
+        # Find or create a moled user...
+        # BOZO !! What to do if user name changed ?
+        def save_user( args )
+          user_id   = args.delete( :user_id ) if args.has_key?( :user_id )
+          user_name = args.delete( :user_name ) if args.has_key?( :user_name )
+        
+          row = {}
+          if user_id and user_name
+            row = { min_field( :user_id ) => user_id, min_field( :user_name ) => user_name }
+          else
+            row = { min_field( :user_name ) => user_name }
+          end
+                    
+          user = users.find_one( row, :fields => ['_id'] )
+          return user['_id'] if user
+
+          now = args[:created_at]
+          row[min_field(:date_id)] = "%4d%02d%02d" % [now.year, now.month, now.day]
+                    
+          users.save( row )
+        end
+        
+        # Find or create a mole feature...
         def save_feature( args )
           app_name    = args.delete( :app_name )
           route_info  = args.delete( :route_info )
@@ -99,7 +123,8 @@ module Rackamole
           feature = features.find_one( row, :fields => ['_id'] )
           return feature['_id'] if feature
 
-          row[min_field(:created_at)] = args[:created_at]
+          now = args[:created_at]
+          row[min_field(:date_id)] = "%4d%02d%02d" %[now.year, now.month, now.day]
                     
           features.save( row )
         end
@@ -107,13 +132,14 @@ module Rackamole
         # Insert a new feature in the db
         # NOTE : Using min key to reduce storage needs. I know not that great for higher level api's :-(
         # also saving date and time as ints. same deal...
-        def save_log( feature_id, args )
+        def save_log( user_id, feature_id, args )
           now = args.delete( :created_at )
           row = {
             min_field( :type )       => args[:type],
             min_field( :feature_id ) => feature_id.to_s,
-            min_field( :date_id )    => ("%4d%02d%02d" %[now.year, now.month, now.day]).to_i,
-            min_field( :time_id )    => ("%02d%02d%02d" %[now.hour, now.min, now.sec] ).to_i
+            min_field( :user_id )    => user_id.to_s,
+            min_field( :date_id )    => "%4d%02d%02d" %[now.year, now.month, now.day],
+            min_field( :time_id )    => "%02d%02d%02d" %[now.hour, now.min, now.sec]
           }
           
           args.each do |k,v|

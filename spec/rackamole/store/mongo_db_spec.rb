@@ -1,9 +1,11 @@
 require File.join(File.dirname(__FILE__), %w[.. .. spec_helper])
+require 'chronic'
 
 describe Rackamole::Store::MongoDb do
   
   describe "#mole" do
     before( :all ) do
+      @now   = Chronic.parse( "11/27/2009" )
       @store = Rackamole::Store::MongoDb.new( 
         :host     => 'localhost', 
         :port     => 27017, 
@@ -30,7 +32,7 @@ describe Rackamole::Store::MongoDb do
       @args[:method]       = 'GET'
       @args[:params]       = { :blee => "duh".to_json }
       @args[:session]      = { :fred => 10.to_json }
-      @args[:created_at]   = Time.now.utc
+      @args[:created_at]   = @now.utc
     end
     
     it "should mole a context based feature correctly" do
@@ -46,7 +48,7 @@ describe Rackamole::Store::MongoDb do
      
       log = @store.logs.find_one()
       log.should_not        be_nil
-      log['typ'].should == Rackamole.feature  
+      log['typ'].should     == Rackamole.feature  
       log['fid'].should_not be_nil
       log['par'].should     == { 'blee' => 'duh'.to_json }
       log['ip'].should      == '1.1.1.1'
@@ -54,13 +56,23 @@ describe Rackamole::Store::MongoDb do
       log['url'].should     == 'http://test_me/'
       log['met'].should     == 'GET'
       log['ses'].should     == { 'fred' => '10' }
-      log['una'].should     == 'Fernand'
-      log['uid'].should     == 100
+      log['uid'].should_not be_nil
       log['rti'].should     == 1.0
-      log['did'].should_not be_nil
-      log['tid'].should_not be_nil    
+      log['did'].should     == '20091127'
+      log['tid'].should     == '190000'
 
-      @store.features.find_one( Mongo::ObjectID.from_string( log['fid'] ) )['app'].should  == 'Test app'                     
+      feature = @store.features.find_one( Mongo::ObjectID.from_string( log['fid'] ) )
+      feature.should_not     be_nil
+      feature['app'].should  == 'Test app'
+      feature['env'].should  == 'test'
+      feature['ctx'].should  == '/fred'
+      feature['did'].should  == '20091127'
+            
+      user = @store.users.find_one( Mongo::ObjectID.from_string( log['uid'] ) )
+      user.should_not be_nil
+      user['una'].should == "Fernand"
+      user['uid'].should == 100
+      user['did'].should == '20091127'
     end
     
     it "should mole a rails feature correctly" do

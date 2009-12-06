@@ -22,7 +22,7 @@ module Rack
     # :perf_threshold :: Any request taking longer than this value will get moled. Default: 10secs
     # :moleable       :: Enable/Disable the MOle (Default:true)
     # :store          :: The storage instance ie log file or mongodb [Default:stdout]
-    # :expiration     :: Number of seconds to expiration. The mole will not keep sending alert if a particular
+    # :expiration     :: Number of seconds to alert expiration. The mole will not keep sending alert if a particular
     #                    mole type has been reported in the past. This threshold specifies the limit at which
     #                    the previously sent alerts will expire and thus will be sent again. 
     #                    For instance, it might be the case that the app is consistently slow for a particular action.

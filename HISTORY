@@ -1,0 +1,8 @@
+0.0.1 - 0.1.0 
+* Initial drop and bug fixes. Not that interesting...
+
+0.1.1
+* Updated mongo store strategy
+  * Tossed out mongo mapper. Trying to stay closer to the metal
+  * Shortened col names for saving space. Unfortunately lame but necessary
+  * Moved user info into separate collection.
