@@ -136,8 +136,8 @@ module Rackamole
           now = args.delete( :created_at )
           row = {
             min_field( :type )       => args[:type],
-            min_field( :feature_id ) => feature_id.to_s,
-            min_field( :user_id )    => user_id.to_s,
+            min_field( :feature_id ) => feature_id,
+            min_field( :user_id )    => user_id,
             min_field( :date_id )    => "%4d%02d%02d" %[now.year, now.month, now.day],
             min_field( :time_id )    => "%02d%02d%02d" %[now.hour, now.min, now.sec]
           }

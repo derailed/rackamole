@@ -61,14 +61,14 @@ describe Rackamole::Store::MongoDb do
       log['did'].should     == '20091127'
       log['tid'].should     == '190000'
 
-      feature = @store.features.find_one( Mongo::ObjectID.from_string( log['fid'] ) )
+      feature = @store.features.find_one( log['fid'] )
       feature.should_not     be_nil
       feature['app'].should  == 'Test app'
       feature['env'].should  == 'test'
       feature['ctx'].should  == '/fred'
       feature['did'].should  == '20091127'
             
-      user = @store.users.find_one( Mongo::ObjectID.from_string( log['uid'] ) )
+      user = @store.users.find_one( log['uid'] )
       user.should_not be_nil
       user['una'].should == "Fernand"
       user['uid'].should == 100
