@@ -1,0 +1,42 @@
+# -----------------------------------------------------------------------------
+# Rackamole Test rack configuration file
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Shared configuration
+defaults: &defaults
+  :moleable:       true  
+  :app_name:       TestApp
+  :user_key:       :user_name
+  :twitter:
+   :username: bumblebtuna
+   :password: secret
+   :alert_on:
+     - <%= Rackamole.perf %>
+  :email:
+    :from: Bozo@acme.com
+    :to: 
+      - 'fernand@acme.com'
+    :alert_on:
+      - <%= Rackamole.fault %>
+
+# -----------------------------------------------------------------------------
+# 
+development:
+  <<:             *defaults
+  :perf_threshold: 2
+     
+# ----------------------------------------------------------------------------- 
+# Turn mole off in test
+test:
+  :moleable: false
+
+# ----------------------------------------------------------------------------- 
+# Use mongo based store in production env     
+production: 
+  <<:             *defaults
+  :perf_threshold: 5
+  :store:          !ruby/object:Rackamole::Store::MongoDb
+    host:    fred
+    port:    10
+    db_name: mole_fred_production    

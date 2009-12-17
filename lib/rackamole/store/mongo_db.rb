@@ -7,7 +7,7 @@ module Rackamole
     # Mongo adapter. Stores mole info to a mongo database.
     class MongoDb
       
-      attr_reader :database, :logs, :features, :users #:nodoc:
+      attr_reader :host, :port, :db_name, :database, :logs, :features, :users #:nodoc:
             
       # Initializes the mongo db store. MongoDb can be used as a persitent store for
       # mole information. This is a preferred store for the mole as it will allow you
@@ -29,6 +29,16 @@ module Rackamole
         init_mongo( opts )
       end
             
+      def to_yaml( opts={} )
+        YAML::quick_emit( object_id, opts ) do |out|
+          out.map( taguri, to_yaml_style ) do |map|
+            map.add( :host    , host )
+            map.add( :port    , port )
+            map.add( :db_name , db_name )
+          end
+        end
+      end
+      
       # Dump mole info to a mongo database. There are actually 2 collections
       # for mole information. Namely features and logs. The features collection hold
       # application and feature information and is referenced in the mole log. The logs
@@ -36,6 +46,10 @@ module Rackamole
       # such as user, params, session, request time, etc...
       def mole( arguments )
         return if arguments.empty?       
+        
+        unless @connection
+          init_mongo( :host => host, :port => port, :db_name => db_name )
+        end
         
         # get a dup of the args since will mock with the original
         args = arguments.clone
@@ -58,8 +72,13 @@ module Rackamole
         end
 
         def init_mongo( opts )
-          @connection = Mongo::Connection.new( opts[:host], opts[:port], :logger => opts[:logger] )
-          @database   = @connection.db( opts[:database] )
+          @host       = opts[:host]
+          @port       = opts[:port]
+          @db_name    = opts[:db_name]
+          
+          @connection = Mongo::Connection.new( @host, @port, :logger => opts[:logger] )          
+          @database   = @connection.db( @db_name )
+          
           @features   = database.collection( 'features' )
           @logs       = database.collection( 'logs' )
           @users      = database.collection( 'users' )
@@ -80,7 +99,7 @@ module Rackamole
           {
              :host     => 'localhost',
              :port     => Mongo::Connection::DEFAULT_PORT,
-             :database => 'mole_mdb'
+             :db_name  => 'mole_mdb'
           }
         end
         

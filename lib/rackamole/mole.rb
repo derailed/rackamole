@@ -1,6 +1,7 @@
 require 'hitimes'
 require 'json'
 require 'mongo'
+require 'yaml'
 
 # BOZO !! - Need args validator or use dsl as the args are out of control...
 module Rack
@@ -16,6 +17,11 @@ module Rack
     #
     # === Options
     #
+    # :config_file    :: This option will load rackamole options from a file versus individual options. 
+    #                    You can leverage yaml and erb with the current rackamole context to specify each of
+    #                    the following options but within a yaml file. This gives more flexibility to customize
+    #                    the rack component for specific environment. You can specify the :environment option or
+    #                    the default will be development.
     # :app_name       :: The name of the application (Default: Moled App)
     # :log_level      :: Rackamole logger level. (Default: info )
     # :environment    :: The environment for the application ie :environment => RAILS_ENV
@@ -92,7 +98,15 @@ module Rack
         
     # Load up configuration options
     def init_options( opts )
-      @options = default_options.merge( opts )      
+      if opts[:config_file] && (env = opts[:environment] || "development")
+        raise "Unable to find rackamole config file #{opts[:config_file]}" unless ::File.exists?( opts[:config_file] )
+        begin
+          opts = YAML.load( ERB.new( IO.read( opts[:config_file] ) ).result( binding ) )[env]          
+        rescue => boom
+          raise "Unable to parse Rackamole config file #{boom}"
+        end        
+      end      
+      @options = default_options.merge( opts )
     end
     
     # Mole default options
@@ -102,7 +116,7 @@ module Rack
         :log_level       =>  :info,
         :expiration      =>  60*60, # 1 hour    
         :app_name        =>  "Moled App",
-        :environment     =>  'test',
+        :environment     =>  'development',
         :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
         :perf_threshold  =>  10.0,
         :store           =>  Rackamole::Store::Log.new

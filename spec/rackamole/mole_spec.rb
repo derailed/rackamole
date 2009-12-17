@@ -365,4 +365,42 @@ describe Rack::Mole do
       @rack.send( :id_browser, 'IBrowse' ).should == 'N/A'
     end
   end
+  
+  # ---------------------------------------------------------------------------
+  describe 'YAML load' do
+    before :all do
+      @config_file = File.join( File.dirname(__FILE__), %w[.. test_configs rackamole_test.yml] )
+    end
+    
+    it "should load the test env correctly from a yaml file" do
+      @rack = Rack::Mole.new( nil, :environment => 'test', :config_file => @config_file )
+      @rack.send( 'options' )[:moleable].should == false
+    end
+    
+    it "should load the dev env correctly from a yaml file" do
+      @rack = Rack::Mole.new( nil, :environment => 'development', :config_file => @config_file )
+      opts  = @rack.send( 'options' )
+      opts[:moleable].should       == true
+      opts[:app_name].should       == 'TestApp'
+      opts[:user_key].should       == :user_name 
+      opts[:perf_threshold].should == 2
+      
+      @rack.send( :alertable?, :twitter, Rackamole.perf ).should  == true
+      @rack.send( :alertable?, :twitter, Rackamole.fault ).should == false
+      @rack.send( :alertable?, :email, Rackamole.fault ).should   == true
+      @rack.send( :alertable?, :email, Rackamole.perf ).should    == false            
+    end
+    
+    it "should load the prod env correctly" do      
+      @rack = Rack::Mole.new( nil, :environment => 'production', :config_file => @config_file )
+      opts  = @rack.send( 'options' )
+      opts[:moleable].should       == true
+      opts[:app_name].should       == 'TestApp'
+      opts[:perf_threshold].should == 5
+      (opts[:store].instance_of?(Rackamole::Store::MongoDb)).should == true
+      opts[:store].db_name.should == "mole_fred_production"
+      opts[:store].port.should    == 10
+      opts[:store].host.should    == "fred"
+    end        
+  end
 end

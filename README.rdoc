@@ -1,4 +1,5 @@
 == RackAMole
+
   Observe your web applications in the wild!
   
 == DESCRIPTION:
@@ -37,6 +38,9 @@ interactions and leverage these findings for the next iteration of your applicat
 * Logging
 * Hitimes
 * MongoDb + mongo ruby adapter
+* Twitter4r
+* Chronic
+* Actionmailer
 
 == INSTALL:
 
@@ -76,6 +80,12 @@ interactions and leverage these findings for the next iteration of your applicat
   
   This assumes that you have session enabled to identify a user if not the mole will log the user
   as 'Unknown'
+  
+=== Notables
+
+  Rackamole also comes with an option to specify a yaml config file to initialize the various settings.
+  This comes in very handy when you need to specify different options depending on the environment you
+  are operating in. Please see the spec/test_configs/rackamole_test.yml for an example.
   
 === Storing moled information
  

@@ -6,3 +6,8 @@
   * Tossed out mongo mapper. Trying to stay closer to the metal
   * Shortened col names for saving space. Unfortunately lame but necessary
   * Moved user info into separate collection.
+  
+0.2.0
+* YAML options - You can now load the rack component from a yaml file. This is
+  very handy in framework where Rackamole options varies depending on the environment.
+  Please refer to spec/test_configs/rackamole_test.yml for an example
