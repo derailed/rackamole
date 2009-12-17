@@ -103,6 +103,10 @@ interactions and leverage these findings for the next iteration of your applicat
   This expect a local mongo instance to be running on the default port. You can change the 
   location by adding :host and :port options.
   
+  NOTE: If you intend to use Wackamole please use the following mongo database naming convention
+  
+  mole_{app_name}_{environment}_mdb
+  
 == LICENSE:
 
 (The MIT License)
