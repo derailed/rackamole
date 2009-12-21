@@ -106,7 +106,7 @@ module Rack
           raise "Unable to parse Rackamole config file #{boom}"
         end        
       end      
-      @options = default_options.merge( opts )
+      @options = default_options.merge( opts )      
     end
     
     # Mole default options
