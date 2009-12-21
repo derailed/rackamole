@@ -3,7 +3,6 @@ require 'json'
 require 'mongo'
 require 'yaml'
 
-# BOZO !! - Need args validator or use dsl as the args are out of control...
 module Rack
   class Mole
     
@@ -101,7 +100,8 @@ module Rack
       if opts[:config_file] && (env = opts[:environment] || "development")
         raise "Unable to find rackamole config file #{opts[:config_file]}" unless ::File.exists?( opts[:config_file] )
         begin
-          opts = YAML.load( ERB.new( IO.read( opts[:config_file] ) ).result( binding ) )[env]          
+          opts = YAML.load( ERB.new( IO.read( opts[:config_file] ) ).result( binding ) )[env]
+          opts[:environment] = env
         rescue => boom
           raise "Unable to parse Rackamole config file #{boom}"
         end        
