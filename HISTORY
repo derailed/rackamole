@@ -11,3 +11,7 @@
 * YAML options - You can now load the rack component from a yaml file. This is
   very handy in framework where Rackamole options varies depending on the environment.
   Please refer to spec/test_configs/rackamole_test.yml for an example
+  
+0.2.2
+* NOTICE: Wrong docs and wrong configuration for mongo store initialization
+  * Corrected docs and validation for mongo store init - changed :database to :db_name

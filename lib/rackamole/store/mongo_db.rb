@@ -19,9 +19,9 @@ module Rackamole
       #
       # === Options
       #
-      # :host     :: The name of the host running the mongo server. Default: localhost
-      # :port     :: The port for the mongo server instance. Default: 27017
-      # :database :: The name of the mole databaase. Default: mole_mdb
+      # :host    :: The name of the host running the mongo server. Default: localhost
+      # :port    :: The port for the mongo server instance. Default: 27017
+      # :db_name :: The name of the mole databaase. Default: mole_mdb
       #
       def initialize( options={} )
         opts = default_options.merge( options )
@@ -86,7 +86,7 @@ module Rackamole
 
         # Validates option hash.
         def validate_options( opts )     
-          %w[host port database].each do |option|
+          %w[host port db_name].each do |option|
             unless opts[option.to_sym]
               raise "[MOle] Mongo store configuration error -- You must specify a value for option `:#{option}" 
             end

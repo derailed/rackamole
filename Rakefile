@@ -28,6 +28,7 @@ PROJ.rcov.opts       = ["--sort", "coverage", "-T", '-x mongo']
 depend_on "logging"      , ">= 1.2.2"
 depend_on "hitimes"      , ">= 1.0.3"
 depend_on "mongo"        , ">= 0.17.1"
+depend_on "mongo_ext"    , ">= 0.17.1"
 depend_on "chronic"      , ">= 0.2.3"
 depend_on "twitter4r"    , ">= 0.3.0"
 depend_on "actionmailer" , ">= 2.1.0"

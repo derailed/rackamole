@@ -98,7 +98,7 @@ interactions and leverage these findings for the next iteration of your applicat
   types a logger and a mongo adapter. By default the store is set to log moled information to the console. 
   To change to a mongo store simply add the following options:
   
-  use Rack::Mole, { :app_name => "Fred", :store => Rackamole::Store::MongoDb.new( :database => 'mole_fred_alpha_mdb' ) }
+  use Rack::Mole, { :app_name => "Fred", :store => Rackamole::Store::MongoDb.new( :db_name => 'mole_fred_alpha_mdb' ) }
   
   This expect a local mongo instance to be running on the default port. You can change the 
   location by adding :host and :port options.
