@@ -44,6 +44,10 @@ module Rack
     # ==
     #
     # :excluded_paths:: Exclude paths that you do not wish to mole by specifying an array of regular expresssions.
+    # :param_excludes:: Exempt params from being logged to the mole. Specify an array of keys as 
+    #                   as symbols ie [:password, :card_number].
+    # :session_excludes:: Exempt session params from being logged by the mole. Specify an array of keys as symbols
+    #                   ie [:fred, :blee] to exclude session[:fred] and session[:blee] from being stored.
     # :twitter       :: Set this option to have the mole twitt certain alerts. You must configure your twitter auth 
     #                   via the :username and :password keys and :alert_on with an array of mole types you
     #                   wish to be notified on.
@@ -154,13 +158,13 @@ module Rack
         # send email alert ?
         if alertable?( :email, attrs[:type] )
           logger.debug ">>> Sending out email on mole type #{attrs[:type]} to #{options[:email][:to].join( ", ")}"
-          Rackamole::Alert::Emole.deliver_alert( options[:email], attrs ) 
+          Rackamole::Alert::Emole.deliver_alert( logger, options[:email], attrs ) 
         end
       
         # send twitter alert ?
         if alertable?( :twitter, attrs[:type] )
           logger.debug ">>> Sending out twitt on mole type #{attrs[:type]} on @#{options[:twitter][:username]}"
-          Rackamole::Alert::Twitt.deliver_alert( options[:twitter][:username], options[:twitter][:password], attrs )
+          Rackamole::Alert::Twitt.deliver_alert( logger, options[:twitter][:username], options[:twitter][:password], attrs )
         end
       end
     rescue => boom
@@ -229,7 +233,7 @@ module Rack
                            
       return info unless mole_request?( request )
                         
-      session     = env['rack.session']      
+      session     = env['rack.session']
       route       = get_route( request )
 
       ip, user_agent = identify( env )
@@ -268,14 +272,14 @@ module Rack
       
       # Dump request params
       unless request.params.empty?
-        info[:params] = OrderedHash.new
-        request.params.keys.sort.each { |k| info[:params][k.to_sym] = request.params[k].to_json }
+        info[:params] = filter_params( request.params, options[:param_excludes] || [] )
+        # request.params.keys.sort.each { |k| info[:params][k.to_sym] = request.params[k].to_json }
       end
             
       # Dump session var
       if session and !session.empty?
-        info[:session] = OrderedHash.new 
-        session.keys.sort{ |a,b| a.to_s <=> b.to_s }.each { |k| info[:session][k.to_sym] = session[k].to_json }
+        info[:session] = filter_params( session, options[:session_excludes] || [] )
+        # session.keys.sort{ |a,b| a.to_s <=> b.to_s }.each { |k| info[:session][k.to_sym] = session[k].to_json }
       end
       
       # Check if an exception was raised. If so consume it and clear state
@@ -290,6 +294,15 @@ module Rack
       info
     end
         
+    # filters out params hash and convert values to json
+    def filter_params( source, excludes )
+      results = OrderedHash.new
+      source.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k| 
+        results[k.to_sym] = source[k].to_json unless excludes.include?( k.to_sym )
+      end
+      results
+    end
+    
     # Attempts to detect browser type from agent info.
     # BOZO !! Probably more efficient way to do this...
     def browser_types() @browsers ||= [ 'Firefox', 'Safari', 'MSIE 8.0', 'MSIE 7.0', 'MSIE 6.0', 'Opera', 'Chrome' ] end
@@ -328,19 +341,19 @@ module Rack
       end
     end
     
-    # Debug - Dump env to stdout
-    def dump( env, level=0 )
-      env.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
-        value = env[k]
-        if value.respond_to?(:each_pair) 
-          puts "%s %-#{40-level}s" % ['  '*level,k]
-          dump( env[k], level+1 )
-        elsif value.instance_of?(::ActionController::Request) or value.instance_of?(::ActionController::Response) 
-          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.class ]
-        else
-          puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
-        end        
-      end
-    end
+    # # Debug - Dump env to stdout
+    # def dump( env, level=0 )
+    #   env.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
+    #     value = env[k]
+    #     if value.respond_to?(:each_pair) 
+    #       puts "%s %-#{40-level}s" % ['  '*level,k]
+    #       dump( env[k], level+1 )
+    #     elsif value.instance_of?(::ActionController::Request) or value.instance_of?(::ActionController::Response) 
+    #       puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.class ]
+    #     else
+    #       puts "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
+    #     end        
+    #   end
+    # end
   end
 end

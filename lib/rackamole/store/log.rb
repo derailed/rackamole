@@ -47,10 +47,12 @@ module Rackamole::Store
       def display_head( args )
         log.info "-"*100
         log.info case args[:type]
-          when Rackamole.feature : "FEATURE m()le"
-          when Rackamole.fault   : "FAULT m()le"
-          when Rackamole.perf    : "PERFORMANCE m()le"
-          else "Unknown type #{args[:type].inspect}"
+          when Rackamole.feature 
+            "FEATURE m()le"
+          when Rackamole.fault
+            "FAULT m()le"
+          when Rackamole.perf
+            "PERFORMANCE m()le"
         end
       end
       

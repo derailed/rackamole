@@ -46,8 +46,6 @@ interactions and leverage these findings for the next iteration of your applicat
 == INSTALL:
 
 * sudo gem install rackamole
-
-  NOTE: The gem is hosted on gemcutter.org
   
 == USAGE:
 
@@ -107,7 +105,10 @@ interactions and leverage these findings for the next iteration of your applicat
   NOTE: If you intend to use Wackamole please use the following mongo database naming convention
   
   mole_{app_name}_{environment}_mdb
-  
+
+  NOTE: Rackamole also provides for preventing certain sensitive params from being logged. You can specify
+  param_excludes or session_excludes as array of symbols to exclude specific request or session params.
+    
 == LICENSE:
 
 (The MIT License)

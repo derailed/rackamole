@@ -43,10 +43,12 @@ module Rackamole::Alert
     def send_alert( args )
       twitt_msg = "#{args[:app_name]} on #{format_host(args[:host])} - #{args[:user_name]}\n#{display_feature(args)}"
       twitt_msg = case args[:type]
-        when Rackamole.feature : "[Feature] #{twitt_msg}"
-        when Rackamole.perf    : "[Perf] #{twitt_msg}\n#{format_time(args[:request_time])} secs"
-        when Rackamole.fault   : "[Fault] #{twitt_msg}\n#{args[:fault]}"
-        else nil
+        when Rackamole.feature
+          "[Feature] #{twitt_msg}"
+        when Rackamole.perf 
+          "[Perf] #{twitt_msg}\n#{format_time(args[:request_time])} secs"
+        when Rackamole.fault
+          "[Fault] #{twitt_msg}\n#{args[:fault]}"
       end
       if twitt_msg
         twitt_msg += " - #{args[:created_at].strftime( "%H:%M:%S")}"
@@ -54,9 +56,10 @@ module Rackamole::Alert
       end
       twitt_msg
     rescue => boom
-      $stderr.puts "TWITT mole failed with #{boom}"
+       logger.error "Rackamole twitt alert failed with error `#{boom}"
     end                                  
         
+    # =========================================================================
     private
     
        attr_reader :username, :password #:nodoc:

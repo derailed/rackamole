@@ -161,7 +161,7 @@ describe Rack::Mole do
       fault.count.should == 1
     end
   end
-    
+      
   # ---------------------------------------------------------------------------    
   describe 'moling a request' do
     before :each do
@@ -372,7 +372,14 @@ describe Rack::Mole do
     before :all do
       @config_file = File.join( File.dirname(__FILE__), %w[.. test_configs rackamole_test.yml] )
     end
-    
+
+    it "should raise an error if the config is hosed" do
+      flawed = File.join( File.dirname(__FILE__), %w[.. test_configs flawed_config.yml] )
+      lambda{ 
+        Rack::Mole.new( nil, :environment => 'test', :config_file => flawed )
+      }.should raise_error( RuntimeError, /Unable to parse Rackamole config file/ ) 
+    end
+        
     it "should load the test env correctly from a yaml file" do
       @rack = Rack::Mole.new( nil, :environment => 'test', :config_file => @config_file )
       @rack.send( 'options' )[:moleable].should == false
@@ -404,4 +411,35 @@ describe Rack::Mole do
       opts[:store].host.should    == "fred"
     end        
   end
+  
+  # ---------------------------------------------------------------------------    
+  describe 'excludes params' do
+    
+    it "should exclude request params correctly" do
+      @opts[:param_excludes] = [:bobo]
+      app( @opts )      
+      get "/", { :blee => 'duh', :bobo => 10 }, @test_env
+      params = @test_store.mole_result[:params]
+      params.should_not be_nil
+      params[:blee].should == 'duh'.to_json
+      params.keys.size.should == 1
+      params.has_key?( :bobo ).should == false
+    end    
+    
+    it "should exclude session params correctly" do
+      @test_env['rack.session'][:bobo] = 'exclude_me'
+      @opts[:session_excludes] = [:bobo]      
+      app( @opts )      
+      get "/", { :username => 'duh', :bobo => 10 }, @test_env
+      params = @test_store.mole_result[:params]
+      params.should_not be_nil
+      params.keys.size.should == 2
+      session = @test_store.mole_result[:session]
+      session.should_not be_nil
+      session.keys.size.should == 2
+      session.has_key?( :bobo ).should == false
+    end    
+    
+  end
+  
 end

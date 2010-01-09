@@ -24,7 +24,7 @@ describe Rackamole::Alert::Emole do
     it "should send a feature email correctly" do
       # @expected.subject = "[M()le] (Feature) -Test@Fred- for user Fernand"
       @expected.body    = feature_body      
-      Rackamole::Alert::Emole.deliver_alert( {:from => @from, :to => @to}, @args ).should == @expected.body_port.to_s
+      Rackamole::Alert::Emole.deliver_alert( nil, {:from => @from, :to => @to}, @args ).should == @expected.body_port.to_s
     end
 
     it "should send a perf email correctly" do
@@ -32,7 +32,7 @@ describe Rackamole::Alert::Emole do
       @args[:request_time] = 10.0
       # @expected.subject = "[M()le] (Performance:10.0) -Test@Fred- for user Fernand"
       @expected.body    = perf_body
-      Rackamole::Alert::Emole.deliver_alert( {:from => @from, :to => @to }, @args ).should == @expected.body_port.to_s
+      Rackamole::Alert::Emole.deliver_alert( nil, {:from => @from, :to => @to }, @args ).should == @expected.body_port.to_s
     end
 
     it "should send a fault email correctly" do
@@ -42,7 +42,7 @@ describe Rackamole::Alert::Emole do
       @args[:params] = { :id => 10 }
       # @expected.subject = "[M()le] (Fault) -Test@Fred- for user Fernand"
       @expected.body    = fault_body
-      Rackamole::Alert::Emole.deliver_alert( { :from => @from, :to => @to }, @args ).should == @expected.body_port.to_s
+      Rackamole::Alert::Emole.deliver_alert( nil, { :from => @from, :to => @to }, @args ).should == @expected.body_port.to_s
     end
 
   end

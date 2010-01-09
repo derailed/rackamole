@@ -21,7 +21,7 @@ module Rackamole::Alert
     #            :: And a :to, n array of email addresses for recipients to be notified.
     # args       :: The gathered information from the mole.
     #
-    def self.deliver_alert( options, args )
+    def self.deliver_alert( logger, options, args )
       params = options.clone
       params[:to]      = options[:to].join( ", " )
       params[:subject] = "[M()le] (#{alert_type( args )}#{request_time?( args )}) -#{args[:app_name]}@#{args[:host]}- for user #{args[:user_name]}"
@@ -32,13 +32,14 @@ module Rackamole::Alert
       
       tmpl     = File.join( template_root, %w[alert.erb] )
       template = Erubis::Eruby.new( IO.read( tmpl ), :trim => true )
-      
+            
       output        = template.result( binding )
       params[:body] = output
-      
-      Pony.mail( params )
-      
+
+      Pony.mail( params )      
       output
+    rescue => boom
+      logger.error( "Rackamole email alert failed with error `#{boom}" )
     end
             
     # =========================================================================               
@@ -52,9 +53,12 @@ module Rackamole::Alert
       # Identify the type of alert...        
       def self.alert_type( args ) 
         case args[:type]
-          when Rackamole.feature : "Feature"
-          when Rackamole.perf    : "Performance"
-          when Rackamole.fault   : "Fault"
+          when Rackamole.feature 
+            "Feature"
+          when Rackamole.perf
+            "Performance"
+          when Rackamole.fault
+            "Fault"
         end
       end
 
