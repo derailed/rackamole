@@ -15,3 +15,8 @@
 0.2.2
 * NOTICE: Wrong docs and wrong configuration for mongo store initialization
   * Corrected docs and validation for mongo store init - changed :database to :db_name
+  
+0.2.3
+* Bug fixes
+  * Fixed issue where session or param key falls under the format a.b.c which causes 
+    validation problems in mongoDB. Thanks Rafael!

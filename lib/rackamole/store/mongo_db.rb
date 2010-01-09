@@ -162,9 +162,21 @@ module Rackamole
           }
           
           args.each do |k,v|
-            row[min_field(k)] = v if v
+            row[min_field(k)] = check_hash( v ) if v
           end
           logs.save( row )
+        end
+        
+        # Check for invalid key format - ie something that will choke mongo
+        # case a.b.c => a_b_c
+        def ensure_valid_key( key )
+          key.to_s.index( /\./ ) ? key.to_s.gsub( /\./, '_' ) : key
+        end
+        
+        # Check 
+        def check_hash( value )
+          return value unless value.is_a?( Hash )
+          value.keys.inject({}){ |h,k| h[ensure_valid_key(k)] = value[k];h }
         end
         
         # For storage reason minify the json to save space...

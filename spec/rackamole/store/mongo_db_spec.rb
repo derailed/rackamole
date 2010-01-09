@@ -34,9 +34,9 @@ describe Rackamole::Store::MongoDb do
       @args[:session]      = { :fred => 10.to_json }
       @args[:created_at]   = @now.utc
     end
-    
+        
     it "should mole a context based feature correctly" do
-      @store.mole( @args )      
+      @store.mole( @args )
       @store.features.count.should == 1
       @store.logs.count.should     == 1
       
@@ -73,6 +73,18 @@ describe Rackamole::Store::MongoDb do
       user['una'].should == "Fernand"
       user['uid'].should == 100
       user['did'].should == '20091127'
+    end
+    
+    it "should convert a.b.c session keys correctly" do
+      @args[:session] = { 'a.b.c' => 10 }
+      
+      @store.mole( @args )
+      @store.features.count.should == 1
+      @store.logs.count.should     == 1
+
+      log = @store.logs.find_one()
+      log.should_not        be_nil
+      log['ses'].should     == { 'a_b_c' => 10 }      
     end
     
     it "should mole a rails feature correctly" do
