@@ -53,8 +53,9 @@ module Rack
     # ==== BOZO! currently there is not support for throttling or monitoring these alerts. 
     # ==
     # :email        :: The mole can be configured to send out emails bases on interesting mole features.
-    #                  This feature uses actionmailer. You must specify a hash with the following keys :from, :to 
-    #                  and :alert_on options to indicate which mole type your wish to be alerted on.
+    #                  This feature uses Pony to send out the email. You must specify a hash with the following keys :from, :to 
+    #                  and :alert_on options to indicate which mole type your wish to be alerted on. 
+    #                  See Pony docs for custom options for your emails
     # ==
     #   :email => { :from => 'fred@acme.com', :to => ['blee@acme.com', 'doh@acme.com'], :alert_on => [Rackamole.perf, Rackamole.fault]  }
     # ==
@@ -153,7 +154,7 @@ module Rack
         # send email alert ?
         if alertable?( :email, attrs[:type] )
           logger.debug ">>> Sending out email on mole type #{attrs[:type]} to #{options[:email][:to].join( ", ")}"
-          Rackamole::Alert::Emole.deliver_alert( options[:email][:from], options[:email][:to], attrs ) 
+          Rackamole::Alert::Emole.deliver_alert( options[:email], attrs ) 
         end
       
         # send twitter alert ?

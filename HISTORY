@@ -20,3 +20,6 @@
 * Bug fixes
   * Fixed issue where session or param key falls under the format a.b.c which causes 
     validation problems in mongoDB. Thanks Rafael!
+    
+0.2.4
+* Breaking off action_mailer dependencies. Now leveraging Pony for sending out email alerts.

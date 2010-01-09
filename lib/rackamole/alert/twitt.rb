@@ -83,11 +83,12 @@ module Rackamole::Alert
         ("%4.2f" % time).to_f
       end
       
-      # Truncate for twitt max size       
+      # Truncate for twitt max size      
+      # BOZO !! This will be hosed if not 1.9 for multibyte chars 
       def truncate(text, length = 140, truncate_string = "...")
         return "" if text.nil?
-        l = length - truncate_string.mb_chars.length
-        text.mb_chars.length > length ? (text.mb_chars[0...l] + truncate_string).to_s : text
+        l = length - truncate_string.size
+        text.size > length ? (text[0...l] + truncate_string).to_s : text
       end       
   end
 end

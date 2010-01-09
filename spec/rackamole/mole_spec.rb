@@ -1,4 +1,5 @@
 require File.join(File.dirname(__FILE__), %w[.. spec_helper])
+require 'action_controller'
 
 describe Rack::Mole do
   include Rack::Test::Methods
@@ -65,7 +66,7 @@ describe Rack::Mole do
         get "/", nil, @test_env
       rescue
         last_request.env['mole.stash'].should_not be_nil
-        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )
         fault.should_not be_nil
         fault.count.should == 1
       end
@@ -78,7 +79,7 @@ describe Rack::Mole do
           get "/", nil, env
         rescue
           last_request.env['mole.stash'].should_not be_nil
-          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
+          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )
           fault.should_not be_nil
           fault.count.should == i+1
           env = last_request.env
@@ -92,9 +93,9 @@ describe Rack::Mole do
         begin        
           env['PATH_INFO'] = "/#{i}"
           get "/#{i}", nil, env
-        rescue
+        rescue => boom
           last_request.env['mole.stash'].should_not be_nil
-          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )          
+          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )          
           fault.should_not be_nil
           fault.count.should == i+1
           env = last_request.env
@@ -155,7 +156,7 @@ describe Rack::Mole do
     rescue 
       @test_store.mole_result[:stack].should have(4).items
       last_request.env['mole.stash'].should_not be_nil
-      fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
+      fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )
       fault.should_not be_nil
       fault.count.should == 1
     end
@@ -194,7 +195,7 @@ describe Rack::Mole do
         @test_store.mole_result[:stack].should have(4).items
         @test_store.mole_result[:fault].should == 'Oh snap!'
         last_request.env['mole.stash'].should_not be_nil
-        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:189" )
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:190" )
         fault.should_not be_nil
         fault.count.should == 1
       end

@@ -40,7 +40,8 @@ interactions and leverage these findings for the next iteration of your applicat
 * MongoDb + mongo ruby adapter
 * Twitter4r
 * Chronic
-* Actionmailer
+* Erubis
+* Pony
 
 == INSTALL:
 
