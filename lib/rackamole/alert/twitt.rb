@@ -6,8 +6,8 @@ module Rackamole::Alert
   class Twitt
 
     # Twitt an alert        
-    def self.deliver_alert( username, password, attrs )
-      @twitt ||= Twitt.new( username, password )
+    def self.deliver_alert( logger, username, password, attrs )
+      @twitt ||= Twitt.new( logger, username, password )
       @twitt.send_alert( attrs )
     end
             
@@ -27,10 +27,11 @@ module Rackamole::Alert
     # === Params:
     # username :: The name on the twitter account
     # password :: The password of your twitter account
-    def initialize( username, password )
+    def initialize( logger, username, password )
       raise "You must specify your twitter account credentials" unless username or password
       @username = username
       @password = password
+      @logger   = logger
     end
        
     # Send out a twitt notification based of the watched features. A short message will be blasted to your twitter
@@ -62,7 +63,7 @@ module Rackamole::Alert
     # =========================================================================
     private
     
-       attr_reader :username, :password #:nodoc:
+       attr_reader :logger, :username, :password #:nodoc:
        
        # Fetch twitter connection...
        def twitt
