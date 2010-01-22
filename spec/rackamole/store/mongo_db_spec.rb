@@ -9,7 +9,7 @@ describe Rackamole::Store::MongoDb do
       @store = Rackamole::Store::MongoDb.new( 
         :host     => 'localhost', 
         :port     => 27017, 
-        :database => 'test_mole_mdb',
+        :db_name  => 'mole_app_test_mdb',
         :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )
       @db = @store.database
     end
@@ -19,7 +19,7 @@ describe Rackamole::Store::MongoDb do
       
       @args = OrderedHash.new
       @args[:type]         = Rackamole.feature
-      @args[:app_name]     = "Test app"
+      @args[:app_name]     = "app"
       @args[:environment]  = :test
       @args[:perf_issue]   = false
       @args[:ip]           = "1.1.1.1"
@@ -42,7 +42,7 @@ describe Rackamole::Store::MongoDb do
       
       feature = @store.features.find_one()
       feature.should_not be_nil
-      feature['app'].should     == 'Test app'
+      feature['app'].should     == 'app'
       feature['env'].should     == 'test'
       feature['ctx'].should     == '/fred'
      
@@ -63,7 +63,7 @@ describe Rackamole::Store::MongoDb do
 
       feature = @store.features.find_one( log['fid'] )
       feature.should_not     be_nil
-      feature['app'].should  == 'Test app'
+      feature['app'].should  == 'app'
       feature['env'].should  == 'test'
       feature['ctx'].should  == '/fred'
       feature['did'].should  == '20091127'

@@ -23,3 +23,14 @@
     
 0.2.4
 * Breaking off action_mailer dependencies. Now leveraging Pony for sending out email alerts.
+
+0.2.5
+* Added support for excluding certain params from request or session.
+  See the params_excludes and session_excludes options.
+  
+0.2.6
+* Added logging for response information such as status, headers and body. Body is excluded by default
+* Added options for excluding certain mole information for being logged see mole_excludes option.
+* Eliminated unwise defaults. From now, the option :app_name must be specified when initializing.
+  The option :db_name must also be present if the mongo store is used.
+  Keep in mind for rackamole to work with wackamole your db name must follow: mole_{app_name}_{environment}_mdb.

@@ -161,7 +161,39 @@ describe Rack::Mole do
       fault.count.should == 1
     end
   end
+        
+  # ---------------------------------------------------------------------------
+  describe "exclusions" do    
+    before( :each)  do
+      opts = @opts.clone
+      opts[:mole_excludes] = [:headers, :body, :browser, :ip, :url]      
+      app( opts )
+    end
+    
+    it "should exclude some mole attributes correctly" do      
+      get "/fred/blee", nil, @test_env
       
+      @test_store.mole_result[:app_name].should     == "Test App"
+      @test_store.mole_result[:environment].should  == :test
+      @test_store.mole_result[:user_id].should      be_nil
+      @test_store.mole_result[:user_name].should    == 'fernand'
+      @test_store.mole_result[:method].should       == 'GET'
+      @test_store.mole_result[:path].should         == '/fred/blee'
+      @test_store.mole_result[:type].should         == Rackamole.feature
+      @test_store.mole_result[:params].should       be_nil
+      @test_store.mole_result[:session].should_not  be_nil
+      @test_store.mole_result[:session].keys.should have(2).items
+      @test_store.mole_result[:status].should       == 200
+      
+      # Excluded
+      @test_store.mole_result[:headers].should      be_nil
+      @test_store.mole_result[:body].should         be_nil      
+      @test_store.mole_result[:browser].should      be_nil      
+      @test_store.mole_result[:ip].should           be_nil  
+      @test_store.mole_result[:url].should          be_nil          
+    end
+  end
+        
   # ---------------------------------------------------------------------------    
   describe 'moling a request' do
     before :each do
@@ -170,6 +202,7 @@ describe Rack::Mole do
     
     it "should set the mole meta correctly" do
       get "/fred/blee", nil, @test_env
+      
       @test_store.mole_result[:app_name].should     == "Test App"
       @test_store.mole_result[:environment].should  == :test
       @test_store.mole_result[:user_id].should      be_nil
@@ -183,6 +216,9 @@ describe Rack::Mole do
       @test_store.mole_result[:params].should       be_nil
       @test_store.mole_result[:session].should_not  be_nil
       @test_store.mole_result[:session].keys.should have(2).items
+      @test_store.mole_result[:status].should       == 200
+      @test_store.mole_result[:headers].should      == { "Content-Type" => "text/plain" }
+      @test_store.mole_result[:body].should         be_nil
     end
     
     it "mole an exception correctly" do
@@ -195,7 +231,7 @@ describe Rack::Mole do
         @test_store.mole_result[:stack].should have(4).items
         @test_store.mole_result[:fault].should == 'Oh snap!'
         last_request.env['mole.stash'].should_not be_nil
-        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:190" )
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:226" )
         fault.should_not be_nil
         fault.count.should == 1
       end
@@ -234,7 +270,7 @@ describe Rack::Mole do
     it "should find route info correctly" do
       RAILS_ENV = true
       ActionController::Routing::Routes.stub!( :recognize_path ).and_return( { :controller => 'fred', :action => 'blee' } )
-      rack = Rack::Mole.new( nil )
+      rack = Rack::Mole.new( nil, :app_name => "test app" )
       
       # routes.should_receive( 'recognize_path' ).with( 'fred', { :method => 'blee' } ).and_return(  )
       res = rack.send( :get_route, OpenStruct.new( :path => "/", :request_method => "GET") )
@@ -288,12 +324,13 @@ describe Rack::Mole do
   describe '#alertable?' do
     before( :each ) do
       @rack = Rack::Mole.new( nil, 
-        :twitter => { 
+        :app_name => "test app",
+        :twitter  => { 
           :username => 'fred', 
           :password => 'blee', 
           :alert_on => [Rackamole.perf, Rackamole.fault] 
         },
-        :email => { 
+        :email    => { 
           :from     => 'fred', 
           :to       => ['blee'], 
           :alert_on => [Rackamole.perf, Rackamole.fault, Rackamole.feature] 
@@ -321,6 +358,7 @@ describe Rack::Mole do
   describe '#configured?' do
     before( :each ) do
       options = {
+        :app_name     => "test app",
         :blee         => [1,2,3],
         :twitter      => { :username => 'Fernand', :password => "Blee", :alert_on => [Rackamole.perf, Rackamole.fault] },
       }
@@ -354,7 +392,7 @@ describe Rack::Mole do
   # ---------------------------------------------------------------------------
   describe '#id_browser' do
     before :all do
-      @rack = Rack::Mole.new( nil )
+      @rack = Rack::Mole.new( nil, :app_name => "test app" )
     end
     
     it "should detect a browser type correctly" do
@@ -442,4 +480,13 @@ describe Rack::Mole do
     
   end
   
+  # ---------------------------------------------------------------------------    
+  describe 'required params' do
+    it "should crap out if a required param is omitted" do
+      lambda {
+        Rack::Mole.new( app )
+      }.should raise_error( /app_name/ )
+    end
+  end
+
 end

@@ -98,8 +98,7 @@ module Rackamole
         def default_options
           {
              :host     => 'localhost',
-             :port     => Mongo::Connection::DEFAULT_PORT,
-             :db_name  => 'mole_mdb'
+             :port     => Mongo::Connection::DEFAULT_PORT
           }
         end
         
@@ -210,7 +209,10 @@ module Rackamole
             :ruby_version => :ver,
             :fault        => :msg,
             :stack        => :sta,
-            :created_at   => :cro
+            :created_at   => :cro,
+            :status       => :sts,
+            :headers      => :hdr,
+            :body         => :bod
           }
         end      
     end

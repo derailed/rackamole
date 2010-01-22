@@ -1,53 +1,53 @@
-== RackAMole
+== RackAmole
 
   Observe your web applications in the wild!
   
-== DESCRIPTION:
+== DESCRIPTION
 
-The MOle is a rack application that monitors user interactions with your web site. We are not 
-talking about counting page hits here. The MOle tracks all the information available to capture
-the essence of a user interaction with your application. Using the MOle, you are able to see
-which feature is a hit or a bust. As an added bonus, the MOle also track performance and exceptions 
-that might have escaped your test suites or alpha env. To boot your managers will love you for it! 
+  The MOle is a rack application that monitors user interactions with your web site. We are not 
+  talking about counting page hits here. The MOle tracks all the information available to capture
+  the essence of a user interaction with your application. Using the MOle, you are able to see
+  which feature is a hit or a bust. As an added bonus, the MOle also track performance and exceptions 
+  that might have escaped your test suites or alpha env. To boot your managers will love you for it! 
 
-Whether you are releasing a new application or improving on an old one, it is always a good thing 
-to know if anyone is using your application and if they are, how they are using it. 
-What features are your users most fond of and which features find their way into the abyss? 
-You will be able to rapidly assess whether or not your application is a hit and if
-your coolest features are thought as such by your users. You will be able to elegantly record user
-interactions and leverage these findings for the next iteration of your application. 
+  Whether you are releasing a new application or improving on an old one, it is always a good thing 
+  to know if anyone is using your application and if they are, how they are using it. 
+  What features are your users most fond of and which features find their way into the abyss? 
+  You will be able to rapidly assess whether or not your application is a hit and if
+  your coolest features are thought as such by your users. You will be able to elegantly record user
+  interactions and leverage these findings for the next iteration of your application. 
 
 == PROJECT INFORMATION
 
-* Developer:  Fernand Galiana
-* Blog:       http://www.liquidrail.com
-* Site:       http://rackamole.com
-* Twitter:    http://twitter.com/rackamole
-* Forum:      http://groups.google.com/group/rackamole
-* Git:        git://github.com/derailed/rackamole.git
+  Developer:  Fernand Galiana
+  Blog:       http://www.liquidrail.com
+  Site:       http://rackamole.com
+  Twitter:    http://twitter.com/rackamole
+  Forum:      http://groups.google.com/group/rackamole
+  Git:        git://github.com/derailed/rackamole.git
 
-== FEATURES:
+== FEATURES
 
-* Monitors any rack based framework such as Rails and Sinatra
-* Captures the essence of the request as well as user information
-* Tracks performance issues based on your latency threshold
-* Tracks exceptions that might occurred during a request
+  Monitors any rack based framework such as Rails and Sinatra
+  Captures the essence of the request as well as user information
+  Tracks performance issues based on your latency threshold
+  Tracks exceptions that might occurred during a request
 
-== REQUIREMENTS:
+== REQUIREMENTS
 
-* Logging
-* Hitimes
-* MongoDb + mongo ruby adapter
-* Twitter4r
-* Chronic
-* Erubis
-* Pony
+  Logging
+  Hitimes
+  mongo + mongo_ext
+  Twitter4r
+  Chronic
+  Erubis
+  Pony
 
-== INSTALL:
+== INSTALL
 
-* sudo gem install rackamole
+  sudo gem install rackamole
   
-== USAGE:
+== USAGE
 
 === Rails applications
   

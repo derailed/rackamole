@@ -3,6 +3,8 @@ require 'json'
 require 'mongo'
 require 'yaml'
 
+# TODO - remove default app and db name
+# TODO - add recording for response
 module Rack
   class Mole
     
@@ -43,6 +45,9 @@ module Rack
     #    :user_key => { :session_key => :user_id, :extractor => lambda{ |id| User.find( id ).name} }
     # ==
     #
+    # :mole_excludes :: Exclude some of the paramaters that the mole would normaly include. The list of 
+    #                   customizable paramaters is: software, ip, browser type, url, path, status, headers and body.
+    #                   This options takes an array of symbols. Defaults to [:body].    
     # :excluded_paths:: Exclude paths that you do not wish to mole by specifying an array of regular expresssions.
     # :param_excludes:: Exempt params from being logged to the mole. Specify an array of keys as 
     #                   as symbols ie [:password, :card_number].
@@ -85,12 +90,12 @@ module Rack
       elapsed = Hitimes::Interval.measure do
         begin
           status, headers, body = @app.call( env )
-        rescue => boom
+        rescue => boom    
           env['mole.exception'] = boom
           mole_feature( env, elapsed, status, headers, body )
           raise boom
         end
-      end
+      end      
       mole_feature( env, elapsed, status, headers, body )
       return status, headers, body
     end 
@@ -119,10 +124,10 @@ module Rack
       { 
         :moleable        =>  true,    
         :log_level       =>  :info,
-        :expiration      =>  60*60, # 1 hour    
-        :app_name        =>  "Moled App",
+        :expiration      =>  60*60, # 1 hour
         :environment     =>  'development',
         :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
+        :mole_excludes   =>  [:body],
         :perf_threshold  =>  10.0,
         :store           =>  Rackamole::Store::Log.new
       }
@@ -227,12 +232,19 @@ module Rack
     end
     
     # Extract interesting information from the request
-    def mole_info( env, elapsed, status, headers, body )      
-      request = Rack::Request.new( env )
-      info    = OrderedHash.new
+    def mole_info( env, elapsed, status, headers, body )
+      request  = Rack::Request.new( env )
+      response = nil
+      begin
+        response = Rack::Response.new( body, status, headers )
+      rescue
+        ;
+      end
+        
+      info     = OrderedHash.new
                            
       return info unless mole_request?( request )
-                        
+                                                
       session     = env['rack.session']
       route       = get_route( request )
 
@@ -257,29 +269,32 @@ module Rack
       info[:type]         = (elapsed and elapsed > options[:perf_threshold] ? Rackamole.perf : Rackamole.feature)
       info[:app_name]     = options[:app_name]
       info[:environment]  = options[:environment] || "Unknown"
-      info[:user_id]      = user_id      if user_id
+      info[:user_id]      = user_id if user_id
       info[:user_name]    = user_name || "Unknown"
-      info[:ip]           = ip
-      info[:browser]      = id_browser( user_agent )
       info[:host]         = env['SERVER_NAME']
-      info[:software]     = env['SERVER_SOFTWARE']
       info[:request_time] = elapsed if elapsed
-      info[:url]          = request.url
       info[:method]       = env['REQUEST_METHOD']
-      info[:path]         = request.path
-      info[:route_info]   = route if route
+      info[:route_info]   = route if route      
       info[:created_at]   = Time.now.utc
+            
+      # Optional elements...
+      mole?( :software  , info, env['SERVER_SOFTWARE'] )
+      mole?( :ip        , info, ip )
+      mole?( :browser   , info, id_browser( user_agent ) ) 
+      mole?( :url       , info, request.url )
+      mole?( :path      , info, request.path )
+      mole?( :status    , info, status )
+      mole?( :headers   , info, headers )
+      mole?( :body      , info, response.body ) if response
       
       # Dump request params
       unless request.params.empty?
         info[:params] = filter_params( request.params, options[:param_excludes] || [] )
-        # request.params.keys.sort.each { |k| info[:params][k.to_sym] = request.params[k].to_json }
       end
             
       # Dump session var
       if session and !session.empty?
         info[:session] = filter_params( session, options[:session_excludes] || [] )
-        # session.keys.sort{ |a,b| a.to_s <=> b.to_s }.each { |k| info[:session][k.to_sym] = session[k].to_json }
       end
       
       # Check if an exception was raised. If so consume it and clear state
@@ -293,7 +308,14 @@ module Rack
       end      
       info
     end
-        
+    
+    # check exclusion to see if the information should be moled
+    def mole?( key, stash, value )
+# puts "Checking #{key} -- #{options[:mole_excludes].inspect}"      
+      return stash[key] = value if !options[:mole_excludes] or options[:mole_excludes].empty?
+      stash[key] = (options[:mole_excludes].include?( key ) ? nil : value)
+    end
+    
     # filters out params hash and convert values to json
     def filter_params( source, excludes )
       results = OrderedHash.new

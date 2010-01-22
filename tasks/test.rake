@@ -5,6 +5,7 @@ require 'rake/testtask'
 namespace :test do
 
   Rake::TestTask.new(:run) do |t|
+puts "YO"    
     t.libs = PROJ.libs
     t.test_files = if test(?f, PROJ.test.file) then [PROJ.test.file]
                    else PROJ.test.files end
