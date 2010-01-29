@@ -280,12 +280,15 @@ module Rack
       # Optional elements...
       mole?( :software  , info, env['SERVER_SOFTWARE'] )
       mole?( :ip        , info, ip )
-      mole?( :browser   , info, id_browser( user_agent ) ) 
       mole?( :url       , info, request.url )
       mole?( :path      , info, request.path )
       mole?( :status    , info, status )
       mole?( :headers   , info, headers )
       mole?( :body      , info, response.body ) if response
+      
+      # Gather up browser and client machine info
+      agent_info = Rackamole::Utils::AgentDetect.parse( user_agent )
+      %w(browser machine).each { |type| mole?(type.to_sym, info, agent_info[type.to_sym] ) }
       
       # Dump request params
       unless request.params.empty?
@@ -324,19 +327,7 @@ module Rack
       end
       results
     end
-    
-    # Attempts to detect browser type from agent info.
-    # BOZO !! Probably more efficient way to do this...
-    def browser_types() @browsers ||= [ 'Firefox', 'Safari', 'MSIE 8.0', 'MSIE 7.0', 'MSIE 6.0', 'Opera', 'Chrome' ] end
-      
-    def id_browser( user_agent )
-      return "N/A" if !user_agent or user_agent.empty?
-      browser_types.each do |b|
-        return b if user_agent.match( /.*?#{b.gsub(/\./,'\.')}.*?/ )
-      end
-      "N/A"
-    end
-    
+              
     # Trim stack trace
     def trim_stack( boom )
       boom.backtrace[0...4]

@@ -9,26 +9,32 @@ describe Rackamole::Store::Log do
       @store = Rackamole::Store::Log.new( @test_file )
         
       @args = OrderedHash.new
-      @args[:type]         = Rackamole.feature
-      @args[:app_name]     = "Test app"
-      @args[:environment]  = :test
-      @args[:ip]           = "1.1.1.1"
-      @args[:browser]      = "Ibrowse"
-      @args[:user_id]      = 100
-      @args[:user_name]    = "Fernand"
-      @args[:request_time] = 1.0
-      @args[:url]          = "http://test_me/"
-      @args[:path]         = "/fred"
-      @args[:method]       = 'GET'
-      @args[:params]       = { :blee => "duh".to_json }
-      @args[:session]      = { :fred => 10.to_json }
+      @args[:type]               = Rackamole.feature
+      @args[:app_name]           = "Test app"
+      @args[:environment]        = :test
+      @args[:ip]                 = "1.1.1.1"
+      @args[:browser]            = OrderedHash.new
+      @args[:browser][:name]     = "Ibrowse"
+      @args[:browser][:version]  = "1.X"
+      @args[:machine]            = OrderedHash.new
+      @args[:machine][:platform] = "Blee"
+      @args[:machine][:os]       = "Windoze"
+      @args[:machine][:version]  = "10.0"
+      @args[:user_id]            = 100
+      @args[:user_name]          = "Fernand"
+      @args[:request_time]       = 1.0
+      @args[:url]                = "http://test_me/"
+      @args[:path]               = "/fred"
+      @args[:method]             = 'GET'
+      @args[:params]             = { :blee => "duh".to_json }
+      @args[:session]            = { :fred => 10.to_json }
     end
     
     it "should mole a feature correctly" do
       @store.mole( @args )
-      results = File.read( @test_file ).gsub( /.* Mole \:\s/, '' )      
-      expected = File.read( File.join( File.dirname(__FILE__), %w[.. .. expected_results mole_feature.log] ) )    
-      expected.should == results      
+      results = File.read( @test_file ).gsub( /.* Mole \:\s/, '' )
+      expected = File.read( File.join( File.dirname(__FILE__), %w[.. .. expected_results mole_feature.log] ) )
+      expected.should == results
     end
 
     it "should mole an exception correctly" do

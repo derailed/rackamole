@@ -34,3 +34,7 @@
 * Eliminated unwise defaults. From now, the option :app_name must be specified when initializing.
   The option :db_name must also be present if the mongo store is used.
   Keep in mind for rackamole to work with wackamole your db name must follow: mole_{app_name}_{environment}_mdb.
+  
+0.2.7
+* Bug fixes and cleanup
+* Added user_agent parsing. now extracting os/platform/version as well as browser type and version.

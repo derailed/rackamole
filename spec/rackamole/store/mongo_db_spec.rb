@@ -23,7 +23,13 @@ describe Rackamole::Store::MongoDb do
       @args[:environment]  = :test
       @args[:perf_issue]   = false
       @args[:ip]           = "1.1.1.1"
-      @args[:browser]      = "Ibrowse"
+      @args[:browser]            = OrderedHash.new
+      @args[:browser][:name]     = "Ibrowse"
+      @args[:browser][:version]  = "1.X"
+      @args[:machine]            = OrderedHash.new
+      @args[:machine][:platform] = "Blee"
+      @args[:machine][:os]       = "Windoze"
+      @args[:machine][:version]  = "10.0"
       @args[:user_id]      = 100
       @args[:user_name]    = "Fernand"
       @args[:request_time] = 1.0
@@ -52,7 +58,11 @@ describe Rackamole::Store::MongoDb do
       log['fid'].should_not be_nil
       log['par'].should     == { 'blee' => 'duh'.to_json }
       log['ip'].should      == '1.1.1.1'
-      log['bro'].should     == 'Ibrowse'
+      log['bro']['name'].should     == "Ibrowse"
+      log['bro']['version'].should  == "1.X"
+      log['mac']['platform'].should == "Blee"
+      log['mac']['os'].should       == "Windoze"
+      log['mac']['version'].should  == "10.0"
       log['url'].should     == 'http://test_me/'
       log['met'].should     == 'GET'
       log['ses'].should     == { 'fred' => '10' }

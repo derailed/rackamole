@@ -10,7 +10,7 @@ describe Rack::Mole do
     @test_env   = { 
       'rack.session'         => { :user_id => 100, :username => "fernand" }, 
       'HTTP_X_FORWARDED_FOR' => '1.1.1.1', 
-      'HTTP_USER_AGENT'      => "Firefox" 
+      'HTTP_USER_AGENT'      => "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US; rv:1.8.0.12) Gecko/20080326 CentOS/1.5.0.12-14.el5.centos Firefox/1.5.0.12"
     }
     @opts       = {
       :app_name       => "Test App", 
@@ -184,11 +184,12 @@ describe Rack::Mole do
       @test_store.mole_result[:session].should_not  be_nil
       @test_store.mole_result[:session].keys.should have(2).items
       @test_store.mole_result[:status].should       == 200
+      @test_store.mole_result[:machine].should_not  be_nil
       
       # Excluded
       @test_store.mole_result[:headers].should      be_nil
       @test_store.mole_result[:body].should         be_nil      
-      @test_store.mole_result[:browser].should      be_nil      
+      @test_store.mole_result[:browser].should      be_nil
       @test_store.mole_result[:ip].should           be_nil  
       @test_store.mole_result[:url].should          be_nil          
     end
@@ -202,23 +203,27 @@ describe Rack::Mole do
     
     it "should set the mole meta correctly" do
       get "/fred/blee", nil, @test_env
-      
-      @test_store.mole_result[:app_name].should     == "Test App"
-      @test_store.mole_result[:environment].should  == :test
-      @test_store.mole_result[:user_id].should      be_nil
-      @test_store.mole_result[:user_name].should    == 'fernand'
-      @test_store.mole_result[:ip].should           == '1.1.1.1'
-      @test_store.mole_result[:browser].should      == 'Firefox'
-      @test_store.mole_result[:method].should       == 'GET'
-      @test_store.mole_result[:url].should          == 'http://example.org/fred/blee'
-      @test_store.mole_result[:path].should         == '/fred/blee'
-      @test_store.mole_result[:type].should         == Rackamole.feature
-      @test_store.mole_result[:params].should       be_nil
-      @test_store.mole_result[:session].should_not  be_nil
-      @test_store.mole_result[:session].keys.should have(2).items
-      @test_store.mole_result[:status].should       == 200
-      @test_store.mole_result[:headers].should      == { "Content-Type" => "text/plain" }
-      @test_store.mole_result[:body].should         be_nil
+            
+      @test_store.mole_result[:app_name].should           == "Test App"
+      @test_store.mole_result[:environment].should        == :test
+      @test_store.mole_result[:user_id].should            be_nil
+      @test_store.mole_result[:user_name].should          == 'fernand'
+      @test_store.mole_result[:ip].should                 == '1.1.1.1'
+      @test_store.mole_result[:browser][:name].should     == "Firefox" 
+      @test_store.mole_result[:browser][:version].should  == '1.5.0.12'
+      @test_store.mole_result[:machine][:platform].should == 'X11'
+      @test_store.mole_result[:machine][:os].should       == 'Linux'
+      @test_store.mole_result[:machine][:version].should  == 'i686'      
+      @test_store.mole_result[:method].should             == 'GET'
+      @test_store.mole_result[:url].should                == 'http://example.org/fred/blee'
+      @test_store.mole_result[:path].should               == '/fred/blee'
+      @test_store.mole_result[:type].should               == Rackamole.feature
+      @test_store.mole_result[:params].should             be_nil
+      @test_store.mole_result[:session].should_not        be_nil
+      @test_store.mole_result[:session].keys.should       have(2).items
+      @test_store.mole_result[:status].should             == 200
+      @test_store.mole_result[:headers].should            == { "Content-Type" => "text/plain" }
+      @test_store.mole_result[:body].should               be_nil
     end
     
     it "mole an exception correctly" do
@@ -227,12 +232,12 @@ describe Rack::Mole do
       rescue => boom
         @test_env['mole.exception'] = boom
         get "/crap/out", nil, @test_env
-        @test_store.mole_result[:type].should  == Rackamole.fault
-        @test_store.mole_result[:stack].should have(4).items
-        @test_store.mole_result[:fault].should == 'Oh snap!'
+        @test_store.mole_result[:type].should     == Rackamole.fault
+        @test_store.mole_result[:stack].should    have(4).items
+        @test_store.mole_result[:fault].should    == 'Oh snap!'
         last_request.env['mole.stash'].should_not be_nil
-        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:226" )
-        fault.should_not be_nil
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:231" )
+        fault.should_not   be_nil
         fault.count.should == 1
       end
     end
@@ -390,20 +395,35 @@ describe Rack::Mole do
   end
   
   # ---------------------------------------------------------------------------
-  describe '#id_browser' do
-    before :all do
-      @rack = Rack::Mole.new( nil, :app_name => "test app" )
-    end
-    
-    it "should detect a browser type correctly" do
-      browser = @rack.send( :id_browser, "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 3.0.04506.648; InfoPath.2; MS-RTC LM 8; SPC 3.1 P1 Ta)")
-      browser.should == 'MSIE 7.0'
-    end
-    
-    it "should return unknow if can't detect it" do
-      @rack.send( :id_browser, 'IBrowse' ).should == 'N/A'
-    end
-  end
+  # describe '#id_browser' do
+  #   before :all do
+  #     @rack = Rack::Mole.new( nil, :app_name => "test app" )
+  #   end
+  #   
+  #   it "should detect a browser type correctly" do
+  #     agents = 
+  #     [
+  #       "Mozilla/5.0 (iPhone; U; CPU iPhone OS 3_0_1 like Mac OS X; en-us) AppleWebKit/528.18 (KHTML, like Gecko)"
+  #       "Opera/9.61 (Windows NT 5.1; U; ru) Presto/2.1.1"
+  #       "Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)",
+  #       "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; (R1 1.5); .NET CLR 1.1.4322)",
+  #       "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_2; en-US) AppleWebKit/532.5 (KHTML, like Gecko) Chrome/4.0.249.49 Safari/532.5",
+  #       "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_2; en-us) AppleWebKit/531.9 (KHTML, like Gecko) Version/4.0.3 Safari/531.9",
+  #       "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 3.0.04506.648; InfoPath.2; MS-RTC LM 8; SPC 3.1 P1 Ta)",
+  #       "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7"
+  #     ]
+  #     # results = ["Chrome - 4.0.249.49", "Safari - 531.9", "MSIE 7.0", "Firefox - 3.5.7"]
+  #     # results = ["Chrome", "Safari", "MSIE 7.0", "Firefox"]      
+  #     agents.each do |agent|
+  #       browser = @rack.send( :id_browser, agent )
+  #       browser.should == results.shift
+  #     end
+  #   end
+  #   
+  #   it "should return unknow if can't detect it" do
+  #     @rack.send( :id_browser, 'IBrowse' ).should == 'N/A'
+  #   end
+  # end
   
   # ---------------------------------------------------------------------------
   describe 'YAML load' do
