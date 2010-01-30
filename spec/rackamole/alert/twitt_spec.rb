@@ -3,7 +3,7 @@ require 'chronic'
 
 describe Rackamole::Alert::Twitt do
   before( :each ) do
-    @alert = Rackamole::Alert::Twitt.new( nil, 'fernand', "blee" )
+    @alert = Rackamole::Alert::Twitt.new( nil, 'fernand', 'blee' )
   end
   
   it "should truncate a message correctly" do
@@ -39,7 +39,7 @@ describe Rackamole::Alert::Twitt do
       # client.should_receive( :new ).once.and_return( client )
       twitt.should_receive( :send_alert ).with( @args ).once.and_return( "yeah" )      
       
-      Rackamole::Alert::Twitt.deliver_alert( nil, "blee", "duh", @args )
+      Rackamole::Alert::Twitt.deliver_alert( nil, { :twitter => { :username => "blee", :password => "duh" } }, @args )
     end
     
     it "should twitt a feature alert correctly" do

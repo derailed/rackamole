@@ -6,8 +6,8 @@ module Rackamole::Alert
   class Twitt
 
     # Twitt an alert        
-    def self.deliver_alert( logger, username, password, attrs )
-      @twitt ||= Twitt.new( logger, username, password )
+    def self.deliver_alert( logger, options, attrs )
+      @twitt ||= Twitt.new( logger, options[:twitter][:username], options[:twitter][:password] )
       @twitt.send_alert( attrs )
     end
             

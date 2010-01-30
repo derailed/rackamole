@@ -163,13 +163,13 @@ module Rack
         # send email alert ?
         if alertable?( :email, attrs[:type] )
           logger.debug ">>> Sending out email on mole type #{attrs[:type]} to #{options[:email][:to].join( ", ")}"
-          Rackamole::Alert::Emole.deliver_alert( logger, options[:email], attrs ) 
+          Rackamole::Alert::Emole.deliver_alert( logger, options, attrs ) 
         end
       
         # send twitter alert ?
         if alertable?( :twitter, attrs[:type] )
           logger.debug ">>> Sending out twitt on mole type #{attrs[:type]} on @#{options[:twitter][:username]}"
-          Rackamole::Alert::Twitt.deliver_alert( logger, options[:twitter][:username], options[:twitter][:password], attrs )
+          Rackamole::Alert::Twitt.deliver_alert( logger, options, attrs )
         end
       end
     rescue => boom

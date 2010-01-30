@@ -38,3 +38,6 @@
 0.2.7
 * Bug fixes and cleanup
 * Added user_agent parsing. now extracting os/platform/version as well as browser type and version.
+
+0.2.8
+* Formatted email alerts so they are a little more readable

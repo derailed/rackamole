@@ -1,9 +1,9 @@
-A watched feature was triggered in application `<%= args[:app_name] %> on host `<%=args[:host]%>
+<%= feature_type %> alert on application <%= args[:app_name] %> on host <%=args[:host] %>
 
-Details...
+<% %w(what server params session browser headers client).each do |heading| %>
+<%= section( heading ) -%>
+<% end -%>
 
-<%= content %>
-
-- Your Rackamole
-
-This message was generated automatically. Please do not respond directly.
+===============================================================
+Powered by Rackamole. This message was generated automatically.
+Please do not respond directly.
