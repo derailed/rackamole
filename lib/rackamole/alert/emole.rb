@@ -117,7 +117,7 @@ module Rackamole::Alert
       
       # Dump request time if any...
       def self.request_time?( args )
-        args[:type] == Rackamole.perf ? ":#{args[:request_time]}" : ''        
+        args[:type] == Rackamole.perf ? ("%5.2f" % args[:request_time] ) : ''        
       end
       
       # Identify the type of alert...        
