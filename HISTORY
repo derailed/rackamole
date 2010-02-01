@@ -41,3 +41,6 @@
 
 0.2.8
 * Formatted email alerts so they are a little more readable
+
+0.2.9
+* Fixed perf email headline
