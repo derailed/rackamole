@@ -82,7 +82,7 @@ module Rack
     def call( env )      
       # Bail if application is not moleable
       return @app.call( env ) unless moleable?
-                  
+                
       @stash = env['mole.stash'] if env['mole.stash']      
       @stash = Rackamole::Stash::Collector.new( options[:app_name], options[:environment], options[:expiration] ) unless stash
             
@@ -158,7 +158,7 @@ module Rack
       # send info to configured store
       options[:store].mole( attrs )
       
-      # Check for dups. If we've logged this req before don't log it again...
+      # Check for dups. If we've reported this req before don't report it again...
       unless duplicated?( env, attrs )
         # send email alert ?
         if alertable?( :email, attrs[:type] )
@@ -289,10 +289,14 @@ module Rack
       # Gather up browser and client machine info
       agent_info = Rackamole::Utils::AgentDetect.parse( user_agent )
       %w(browser machine).each { |type| mole?(type.to_sym, info, agent_info[type.to_sym] ) }
-      
+
       # Dump request params
       unless request.params.empty?
         info[:params] = filter_params( request.params, options[:param_excludes] || [] )
+      end
+      if route
+        info[:params] ||= {}
+        info[:params].merge!( filter_params( params_from_route( route ), options[:param_excludes] || [] ) )
       end
             
       # Dump session var
@@ -310,6 +314,17 @@ module Rack
         env['mole.exception'] = nil
       end      
       info
+    end
+    
+    # Parse out rails request params if in rails env
+    def params_from_route( route )
+      params = {}
+      except = [:controller, :action]
+      route.each_pair do |k,v|
+        next if except.include?( k )
+        params[k] = v
+      end
+      params
     end
     
     # check exclusion to see if the information should be moled

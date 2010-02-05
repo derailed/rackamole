@@ -44,3 +44,6 @@
 
 0.2.9
 * Fixed perf email headline
+
+0.3.0
+* Fixed issue with rails and params not being correctly recorded

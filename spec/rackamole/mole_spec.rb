@@ -283,6 +283,20 @@ describe Rack::Mole do
       res[:controller].should == 'fred'
       res[:action].should     == 'blee'
     end
+    
+    it "should extract request parameters correctly" do
+      rack = Rack::Mole.new( nil, :app_name => "test app" )
+      res = rack.send( :params_from_route, {:controller => "blee", :action => "fred", :bobo => "hello" } )
+      res.should_not be_nil
+      res.should have(1).item
+      res.should == { :bobo => "hello" }
+    end
+    
+    it "should not pick up params if none are specified" do
+      rack = Rack::Mole.new( nil, :app_name => "test app" )
+      res = rack.send( :params_from_route, {:controller => "blee", :action => "fred" } )
+      res.should be_empty
+    end    
   end
   
   # ---------------------------------------------------------------------------      
