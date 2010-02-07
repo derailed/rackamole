@@ -180,11 +180,11 @@ module Rackamole
         
         # For storage reason minify the json to save space...
         def min_field( field )
-          field_map[field] || field
+          Rackamole::Store::MongoDb.field_map[field] || field
         end
             
         # Normalize all accessors to 3 chars. 
-        def field_map
+        def self.field_map
           @field_map ||= {
             :env          => :env,
             :app_name     => :app,

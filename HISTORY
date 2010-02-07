@@ -47,3 +47,6 @@
 
 0.3.0
 * Fixed issue with rails and params not being correctly recorded
+
+0.3.1
+* Bugs and cleanups
