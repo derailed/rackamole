@@ -47,9 +47,16 @@ module Rack
     #
     # :mole_excludes :: Exclude some of the paramaters that the mole would normaly include. The list of 
     #                   customizable paramaters is: software, ip, browser type, url, path, status, headers and body.
-    #                   This options takes an array of symbols. Defaults to [:body].    
+    #                   This options takes an array of symbols. Defaults to [:body].
+    # :perf_excludes :: Specifies a set of paths that will be excluded when a performance issue is detected.
+    #                   This is useful when certain requests are known to be slow. When a match is found an
+    #                   alert won't be issued but the context will still be moled.
+    # ==
+    #   Don't send an alert when perf is found on /blee/fred. Don't alert on /duh unless the request took longer than 10 secs 
+    #   :perf_excludes => [ {:context => '/blee/fred}, {:context => /^\/duh.*/, :threshold => 10 } ]
+    # ==
     # :excluded_paths:: Exclude paths that you do not wish to mole by specifying an array of regular expresssions.
-    # :param_excludes:: Exempt params from being logged to the mole. Specify an array of keys as 
+    # :param_excludes:: Exempt certain sensitive request parameters from being logged to the mole. Specify an array of keys as 
     #                   as symbols ie [:password, :card_number].
     # :session_excludes:: Exempt session params from being logged by the mole. Specify an array of keys as symbols
     #                   ie [:fred, :blee] to exclude session[:fred] and session[:blee] from being stored.
@@ -126,7 +133,7 @@ module Rack
         :log_level       =>  :info,
         :expiration      =>  60*60, # 1 hour
         :environment     =>  'development',
-        :excluded_paths  =>  [/.?\.ico/, /.?\.png/],
+        :excluded_paths  =>  [/.*?\/stylesheets\/.*/, /.*?\/javascripts\/.*/,/\.*?\/images\/.*/ ],
         :mole_excludes   =>  [:body],
         :perf_threshold  =>  10.0,
         :store           =>  Rackamole::Store::Log.new
@@ -199,8 +206,32 @@ module Rack
       
       # Check if we've seen this perf issue before. If so stash it
       if attrs[:type] == Rackamole.perf
+        # Don't send alert if exempted
+        return true if perf_exempt?( attrs[:path], attrs[:request_time])
         return stash.stash_perf( path, attrs[:request_time], now.utc )
       end      
+    end
+    
+    # Check if request should be exempted from perf alert
+    def perf_exempt?( path, req_time )
+      return false unless option_defined?( :perf_excludes )
+      options[:perf_excludes].each do |hash|
+        context    = hash[:context]
+        threshold  = hash[:threshold]
+        time_trip  = (threshold ? req_time <= threshold : true)
+        
+        if context.is_a? String
+          return true if path == context and time_trip
+        elsif context.is_a? Regexp
+          return true if path.match(context) and time_trip
+        end
+      end
+      false
+    end
+    
+    # Check if an option is defined
+    def option_defined?( key )
+      options.has_key?(key) and options[key]
     end
     
     # Check if an options is set and configured
@@ -225,8 +256,10 @@ module Rack
             
     # Check if this request should be moled according to the exclude filters        
     def mole_request?( request )
-      options[:excluded_paths].each do |exclude_path|
-        return false if request.path.match( exclude_path )
+      if options.has_key?( :excluded_paths ) and options[:excluded_paths]
+        options[:excluded_paths].each do |exclude_path|
+          return false if request.path =~ exclude_path
+        end
       end
       true
     end
@@ -329,7 +362,6 @@ module Rack
     
     # check exclusion to see if the information should be moled
     def mole?( key, stash, value )
-# puts "Checking #{key} -- #{options[:mole_excludes].inspect}"      
       return stash[key] = value if !options[:mole_excludes] or options[:mole_excludes].empty?
       stash[key] = (options[:mole_excludes].include?( key ) ? nil : value)
     end

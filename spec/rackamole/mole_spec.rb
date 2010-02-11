@@ -15,7 +15,6 @@ describe Rack::Mole do
     @opts       = {
       :app_name       => "Test App", 
       :environment    => :test,
-      :excluded_paths => ['/should_bail'],      
       :perf_threshold => 0.1,
       :user_key       => :username,
       :store          => @test_store
@@ -66,7 +65,7 @@ describe Rack::Mole do
         get "/", nil, @test_env
       rescue
         last_request.env['mole.stash'].should_not be_nil
-        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
         fault.should_not be_nil
         fault.count.should == 1
       end
@@ -79,7 +78,7 @@ describe Rack::Mole do
           get "/", nil, env
         rescue
           last_request.env['mole.stash'].should_not be_nil
-          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )
+          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
           fault.should_not be_nil
           fault.count.should == i+1
           env = last_request.env
@@ -95,7 +94,7 @@ describe Rack::Mole do
           get "/#{i}", nil, env
         rescue => boom
           last_request.env['mole.stash'].should_not be_nil
-          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )          
+          fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )          
           fault.should_not be_nil
           fault.count.should == i+1
           env = last_request.env
@@ -103,7 +102,45 @@ describe Rack::Mole do
       end
     end
   end
+  
+  # ---------------------------------------------------------------------------
+  describe "perfomance exemptions" do
+    it "should exempt a string path correctly" do
+      rack = Rack::Mole.new( nil, :app_name => "test app", :perf_excludes => [ {:context => "/fred/blee" } ] )
+      rack.send( :perf_exempt?, "/fred/blee", 10 ).should == true
+      rack.send( :perf_exempt?, "/fred/blee1", 10 ).should == false
+    end
 
+    it "should exempt a regex path correctly" do
+      rack = Rack::Mole.new( nil, :app_name => "test app", :perf_excludes => [ {:context => /^\/fred\/?.*/ } ] )
+      rack.send( :perf_exempt?, "/fred/blee", 10 ).should == true
+      rack.send( :perf_exempt?, "/fred", 10 ).should == true
+      rack.send( :perf_exempt?, "/fred/blee/bubba", 10 ).should == true
+      rack.send( :perf_exempt?, "/freud", 10 ).should == false      
+    end    
+
+    it "should exempt path with threshold correctly" do
+      rack = Rack::Mole.new( nil, :app_name => "test app", :perf_excludes => [ {:context => /^\/fred\/?.*/, :threshold => 15 } ] )
+      rack.send( :perf_exempt?, "/fred/blee", 10 ).should == true
+      rack.send( :perf_exempt?, "/fred/blee", 16 ).should == false
+    end
+    
+    it "should exempt an array of path correctly" do
+      excludes = [
+        { :context => "/duh/1"     , :threshold => 5 },
+        { :context => /^\/fred\/?.*/, :threshold => 15 },
+      ]
+      rack = Rack::Mole.new( nil, :app_name => "test app", :perf_excludes => excludes )
+      rack.send( :perf_exempt?, "/fred/blee", 10 ).should == true
+      rack.send( :perf_exempt?, "/crap/10/fred", 10 ).should == false
+      rack.send( :perf_exempt?, "/fred/blee", 16 ).should == false
+      
+      rack.send( :perf_exempt?, "/duh/1", 5 ).should == true
+      rack.send( :perf_exempt?, "/duh/1", 6 ).should == false
+      rack.send( :perf_exempt?, "/duh/2", 6 ).should == false
+    end
+  end
+  
   # ---------------------------------------------------------------------------
   describe "performance duplicate" do 
     before( :each ) do
@@ -156,7 +193,7 @@ describe Rack::Mole do
     rescue 
       @test_store.mole_result[:stack].should have(4).items
       last_request.env['mole.stash'].should_not be_nil
-      fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:45:in `error_app'" )
+      fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:44:in `error_app'" )
       fault.should_not be_nil
       fault.count.should == 1
     end
@@ -236,7 +273,7 @@ describe Rack::Mole do
         @test_store.mole_result[:stack].should    have(4).items
         @test_store.mole_result[:fault].should    == 'Oh snap!'
         last_request.env['mole.stash'].should_not be_nil
-        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:231" )
+        fault = last_request.env['mole.stash'].send( :find_fault, "/", "./spec/rackamole/mole_spec.rb:268" )
         fault.should_not   be_nil
         fault.count.should == 1
       end
@@ -246,8 +283,16 @@ describe Rack::Mole do
         get "/", { :blee => 'duh' }, @test_env
         @test_store.mole_result[:params].should == { :blee => "duh".to_json }
     end
+
+    it "should not mole a standard exclusion" do
+      %w(/stylesheets/style.css /javascripts/blee.js /images/fred.png).each do |path|
+        get path, nil, @test_env
+        @test_store.mole_result.should be_nil
+      end
+    end
     
-    it "should not mole an exclusion" do
+    it "should not mole a custom exclusion" do
+      @opts[:excluded_paths] = [/\/should_bail/]     
       get '/should_bail', nil, @test_env      
       @test_store.mole_result.should be_nil
     end
@@ -274,15 +319,15 @@ describe Rack::Mole do
   describe "rails env" do
     it "should find route info correctly" do
       pending do
-      RAILS_ENV = true
-      ActionController::Routing::Routes.stub!( :recognize_path ).and_return( { :controller => 'fred', :action => 'blee' } )
-      rack = Rack::Mole.new( nil, :app_name => "test app" )
+        RAILS_ENV = true
+        ActionController::Routing::Routes.stub!( :recognize_path ).and_return( { :controller => 'fred', :action => 'blee' } )
+        rack = Rack::Mole.new( nil, :app_name => "test app" )
       
-      # routes.should_receive( 'recognize_path' ).with( 'fred', { :method => 'blee' } ).and_return(  )
-      res = rack.send( :get_route, OpenStruct.new( :path => "/", :request_method => "GET") )
-      res.should_not          be_nil
-      res[:controller].should == 'fred'
-      res[:action].should     == 'blee'
+        # routes.should_receive( 'recognize_path' ).with( 'fred', { :method => 'blee' } ).and_return(  )
+        res = rack.send( :get_route, OpenStruct.new( :path => "/", :request_method => "GET") )
+        res.should_not          be_nil
+        res[:controller].should == 'fred'
+        res[:action].should     == 'blee'
       end
     end
     

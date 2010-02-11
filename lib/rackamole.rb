@@ -1,7 +1,7 @@
 module Rackamole
 
   # :stopdoc:
-  VERSION = '0.3.1'
+  VERSION = '0.3.2'
   LIBPATH = ::File.expand_path(::File.dirname(__FILE__)) + ::File::SEPARATOR
   PATH = ::File.dirname(LIBPATH) + ::File::SEPARATOR
   # :startdoc:
