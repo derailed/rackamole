@@ -15,7 +15,18 @@ module Rackamole
       #
       # Setup rackamole to use the mongodb store as follows:
       #
-      #   config.middleware.use Rack::Mole, { :store => Rackamole::Store::MongoDb.new }
+      #   config.middleware.use Rack::Mole, { 
+      #     :store => Rackamole::Store::MongoDb.new( 
+      #       :db_name  => 'mole_blee_development_mdb',
+      #       :username => 'fernand',
+      #       :password => 'letmein',
+      #      ) 
+      #   }
+      #
+      # === NOTE 
+      #
+      # To use in conjunction with Wackamole your db_name must follow 
+      # the convention "mole_[app_name]_[environment]_mdb".
       #
       # === Options
       #
