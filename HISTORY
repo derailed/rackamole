@@ -55,3 +55,7 @@
 * Fix issue with excluded_path being nil.
 * Changed default excluded_path 
 * Added perf_excludes option to exempt alerts from being sent for known slower requests
+
+0.3.3
+* Added support for rackamole store authentication
+* Fixed issue to enforce regexp when excluded path are specified as strings.

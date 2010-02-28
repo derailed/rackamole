@@ -4,6 +4,7 @@ require 'chronic'
 describe Rackamole::Store::MongoDb do
   
   describe "#mole" do
+    
     before( :all ) do
       @now   = Chronic.parse( "11/27/2009" )
       @store = Rackamole::Store::MongoDb.new( 
@@ -11,18 +12,18 @@ describe Rackamole::Store::MongoDb do
         :port     => 27017, 
         :db_name  => 'mole_app_test_mdb',
         :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )
-      @db = @store.database
+      @db    = @store.database
     end
     
     before( :each ) do
       @store.send( :reset! )
       
       @args = OrderedHash.new
-      @args[:type]         = Rackamole.feature
-      @args[:app_name]     = "app"
-      @args[:environment]  = :test
-      @args[:perf_issue]   = false
-      @args[:ip]           = "1.1.1.1"
+      @args[:type]               = Rackamole.feature
+      @args[:app_name]           = "app"
+      @args[:environment]        = :test
+      @args[:perf_issue]         = false
+      @args[:ip]                 = "1.1.1.1"
       @args[:browser]            = OrderedHash.new
       @args[:browser][:name]     = "Ibrowse"
       @args[:browser][:version]  = "1.X"
@@ -30,15 +31,15 @@ describe Rackamole::Store::MongoDb do
       @args[:machine][:platform] = "Blee"
       @args[:machine][:os]       = "Windoze"
       @args[:machine][:version]  = "10.0"
-      @args[:user_id]      = 100
-      @args[:user_name]    = "Fernand"
-      @args[:request_time] = 1.0
-      @args[:url]          = "http://test_me/"
-      @args[:path]         = "/fred"
-      @args[:method]       = 'GET'
-      @args[:params]       = { :blee => "duh".to_json }
-      @args[:session]      = { :fred => 10.to_json }
-      @args[:created_at]   = @now.utc
+      @args[:user_id]            = 100
+      @args[:user_name]          = "Fernand"
+      @args[:request_time]       = 1.0
+      @args[:url]                = "http://test_me/"
+      @args[:path]               = "/fred"
+      @args[:method]             = 'GET'
+      @args[:params]             = { :blee => "duh".to_json }
+      @args[:session]            = { :fred => 10.to_json }
+      @args[:created_at]         = @now.utc
     end
         
     it "should mole a context based feature correctly" do
@@ -53,23 +54,23 @@ describe Rackamole::Store::MongoDb do
       feature['ctx'].should     == '/fred'
      
       log = @store.logs.find_one()
-      log.should_not        be_nil
-      log['typ'].should     == Rackamole.feature  
-      log['fid'].should_not be_nil
-      log['par'].should     == { 'blee' => 'duh'.to_json }
-      log['ip'].should      == '1.1.1.1'
+      log.should_not                be_nil
+      log['typ'].should             == Rackamole.feature  
+      log['fid'].should_not         be_nil
+      log['par'].should             == { 'blee' => 'duh'.to_json }
+      log['ip'].should              == '1.1.1.1'
       log['bro']['name'].should     == "Ibrowse"
       log['bro']['version'].should  == "1.X"
       log['mac']['platform'].should == "Blee"
       log['mac']['os'].should       == "Windoze"
       log['mac']['version'].should  == "10.0"
-      log['url'].should     == 'http://test_me/'
-      log['met'].should     == 'GET'
-      log['ses'].should     == { 'fred' => '10' }
-      log['uid'].should_not be_nil
-      log['rti'].should     == 1.0
-      log['did'].should     == '20091127'
-      log['tid'].should     == '190000'
+      log['url'].should             == 'http://test_me/'
+      log['met'].should             == 'GET'
+      log['ses'].should             == { 'fred' => '10' }
+      log['uid'].should_not         be_nil
+      log['rti'].should             == 1.0
+      log['did'].should             == '20091127'
+      log['tid'].should             == '190000'
 
       feature = @store.features.find_one( log['fid'] )
       feature.should_not     be_nil
@@ -164,4 +165,27 @@ describe Rackamole::Store::MongoDb do
     end
   end
   
+  describe( "authentication" ) do
+    it "should authenticate correctly if a store is setup with auth" do
+      store = Rackamole::Store::MongoDb.new( 
+        :host     => 'localhost', 
+        :port     => 27017, 
+        :db_name  => 'mole_sec_app_test_mdb',
+        :username => 'fred',
+        :password => 'letmein',
+        :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )
+    end
+    
+    it "should crap out if auth failed" do
+      lambda {
+        store = Rackamole::Store::MongoDb.new( 
+          :host     => 'localhost', 
+          :port     => 27017, 
+          :db_name  => 'mole_sec_app_test_mdb',
+          :username => 'fred',
+          :password => 'hoy',
+          :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )      
+      }.should raise_error( /Authentication failed/ )
+    end
+  end
 end

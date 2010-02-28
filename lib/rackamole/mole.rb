@@ -258,7 +258,11 @@ module Rack
     def mole_request?( request )
       if options.has_key?( :excluded_paths ) and options[:excluded_paths]
         options[:excluded_paths].each do |exclude_path|
-          return false if request.path =~ exclude_path
+          exclude_path = Regexp.new( exclude_path ) if exclude_path.is_a?( String )
+          if request.path =~ exclude_path
+            logger.debug ">>> Excluded request -- #{request.path} using exclude flag #{exclude_path}"
+            return false 
+          end
         end
       end
       true

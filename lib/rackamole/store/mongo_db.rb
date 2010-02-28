@@ -19,9 +19,11 @@ module Rackamole
       #
       # === Options
       #
-      # :host    :: The name of the host running the mongo server. Default: localhost
-      # :port    :: The port for the mongo server instance. Default: 27017
-      # :db_name :: The name of the mole databaase. Default: mole_mdb
+      # :host     :: The name of the host running the mongo server. Default: localhost
+      # :port     :: The port for the mongo server instance. Default: 27017
+      # :db_name  :: The name of the mole databaase. Default: mole_mdb
+      # :username :: username if the mongo db has auth setup. optional
+      # :password :: password if the mongo db has auth required. optional
       #
       def initialize( options={} )
         opts = default_options.merge( options )
@@ -79,9 +81,14 @@ module Rackamole
           @connection = Mongo::Connection.new( @host, @port, :logger => opts[:logger] )          
           @database   = @connection.db( @db_name )
           
-          @features   = database.collection( 'features' )
-          @logs       = database.collection( 'logs' )
-          @users      = database.collection( 'users' )
+          if opts[:username] and opts[:password]
+            authenticated = @database.authenticate( opts[:username], opts[:password] )
+            raise "Authentication failed for database #{@db_name}. Please check your credentials and try again" unless authenticated
+          end
+          
+          @features = database.collection( 'features' )
+          @logs     = database.collection( 'logs' )
+          @users    = database.collection( 'users' )
         end
 
         # Validates option hash.
@@ -91,14 +98,22 @@ module Rackamole
               raise "[MOle] Mongo store configuration error -- You must specify a value for option `:#{option}" 
             end
           end
+          # check for auth
+          if opts[:username]
+            %w(username password).each do |option|
+              unless opts[option.to_sym]
+                raise "[MOle] Mongo store configuration error -- You must specify a value for auth option `:#{option}" 
+              end
+            end
+          end
         end
                 
         # Set up mongo default options ie localhost host, default mongo port and
         # the database being mole_mdb      
         def default_options
           {
-             :host     => 'localhost',
-             :port     => Mongo::Connection::DEFAULT_PORT
+             :host => 'localhost',
+             :port => Mongo::Connection::DEFAULT_PORT
           }
         end
         

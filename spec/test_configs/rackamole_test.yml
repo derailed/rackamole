@@ -37,6 +37,9 @@ production:
   <<:             *defaults
   :perf_threshold: 5
   :store:          !ruby/object:Rackamole::Store::MongoDb
-    host:    fred
-    port:    10
-    db_name: mole_fred_production    
+    host:          fred
+    port:          10
+    db_name:       mole_fred_production
+    username:      fred
+    password:      secret
+    
