@@ -39,8 +39,7 @@ module Rackamole::Alert
       Pony.mail( params )      
       output
     rescue => boom
-      puts boom
-      boom.backtrace.each { |l| puts l }
+      boom.backtrace.each { |l| logger.error l }
       logger.error( "Rackamole email alert failed with error `#{boom}" )
     end
             
