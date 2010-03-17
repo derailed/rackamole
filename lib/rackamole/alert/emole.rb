@@ -8,10 +8,10 @@ module Rackamole::Alert
     def self.template_root() @template_root ||= File.join( File.dirname(__FILE__), %w[templates] ); end
         
     # Send an email notification for particular moled feature. An email will
-    # be sent based on the two configuration :emails and :mail_on defined on the
-    # Rack::Mole component. These specify the to and from addresses and the conditions
-    # that will trigger the email, currently :enabled and :features for the type of
-    # moled features to track via email. The notification will be sent via Pony,
+    # be sent based on the configuration :email defined on the
+    # Rack::Mole component. This option must specify the to and from addresses and the conditions
+    # that will trigger the email defined by alert_on for the type of
+    # moled features to track via email. The notification will be sent via Mail,
     # so you will need to make sure it is properly configured for your domain.
     # NOTE: This is just a notification mechanism. All moled event will be either logged 
     # or persisted in the db regardless.
