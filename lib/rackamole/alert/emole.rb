@@ -75,11 +75,15 @@ module Rackamole::Alert
       
       # Format args and spit out into buffer
       def self.spew( key, silent=false )
-        buff = []
+        buff  = []
+        value = args[key]
         
-        _spew( buff, '--', (silent ? '' : '  '), key, args[key], silent )
+        value = request_time?( args ) if key == :request_time
+        
+        _spew( buff, '--', (silent ? '' : '  '), key, value, silent )
         buff.join( "\n" )
       end
+      
       def self._spew( buff, sep, indent, key, value, silent )
         if value.is_a?( Hash )
           buff << "#{indent}#{humanize( key )}:" unless silent
@@ -114,7 +118,7 @@ module Rackamole::Alert
       
       # Dump request time if any...
       def self.request_time?( args )
-        args[:type] == Rackamole.perf ? ("%5.2f " % args[:request_time] ) : ''        
+        args[:request_time] ? ("%5.2f " % args[:request_time] ) : ''        
       end
       
       # Identify the type of alert...        
