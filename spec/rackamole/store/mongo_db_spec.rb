@@ -185,7 +185,7 @@ describe Rackamole::Store::MongoDb do
           :username => 'fred',
           :password => 'hoy',
           :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )      
-      }.should raise_error( /Authentication failed/ )
+      }.should raise_error( /Failed to authenticate user 'fred'/ )
     end
   end
 end

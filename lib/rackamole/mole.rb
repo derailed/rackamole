@@ -169,7 +169,7 @@ module Rack
       unless duplicated?( env, attrs )
         # send email alert ?
         if alertable?( :email, attrs[:type] )
-          logger.debug ">>> Sending out email on mole type #{attrs[:type]} to #{options[:email][:to].join( ", ")}"
+          logger.debug ">>> Sending out email on mole type #{attrs[:type]} from #{options[:email][:from]} to #{options[:email][:to].join( ", ")}"
           Rackamole::Alert::Emole.deliver_alert( logger, options, attrs ) 
         end
       

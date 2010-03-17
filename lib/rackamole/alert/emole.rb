@@ -1,4 +1,4 @@
-require 'pony'
+require 'mail'
 require 'erubis'
 
 module Rackamole::Alert
@@ -22,22 +22,21 @@ module Rackamole::Alert
     # args       :: The gathered information from the mole.
     #
     def self.deliver_alert( logger, options, args )
-      @options = options
-      opts     = options[:email]
-      params   = opts.clone
-      params[:to]      = opts[:to].join( ", " )
-      params[:subject] = "RackAmole <#{alert_type( args )}> #{request_time?( args )} on #{args[:app_name]}.#{args[:host]} for user #{args[:user_name]}"
+      @options   = options
+      @args      = args
+      tmpl       = File.join( template_root, %w[alert.erb] )
+      template   = Erubis::Eruby.new( IO.read( tmpl ), :trim => true )
+      body       = template.result( binding )
+      subject    = "Rackamole <#{alert_type( args )}> #{request_time?( args )}on #{args[:app_name]}.#{args[:host]} for user #{args[:user_name]}"
       
-      @args = args
-            
-      tmpl     = File.join( template_root, %w[alert.erb] )
-      template = Erubis::Eruby.new( IO.read( tmpl ), :trim => true )
-            
-      output        = template.result( binding )
-      params[:body] = output
-
-      Pony.mail( params )      
-      output
+      mail = Mail.new do
+        from    options[:email][:from]
+        to      options[:email][:to]
+        subject subject
+        body    body
+      end      
+      mail.deliver!      
+      mail
     rescue => boom
       boom.backtrace.each { |l| logger.error l }
       logger.error( "Rackamole email alert failed with error `#{boom}" )
@@ -45,7 +44,6 @@ module Rackamole::Alert
             
     def self.section( title )
       buff = []
-      # buff << "-"*80
       buff << "-"*40      
       buff << "o #{title.capitalize}\n"      
       buff << self.send( title.downcase )
@@ -103,7 +101,7 @@ module Rackamole::Alert
           when Rackamole.perf
             buff << "#{spew( :request_time )}/#{@options[:perf_threshold]}"
         end
-        buff << spew( :url ) << spew( :path ) << spew( :status ) 
+        buff << spew( :user_name) << spew( :url ) << spew( :path ) << spew( :status ) 
         buff << spew( :method ) << spew( :request_time ) << spew( :ip )
         buff.join( "\n" )
       end      
@@ -116,7 +114,7 @@ module Rackamole::Alert
       
       # Dump request time if any...
       def self.request_time?( args )
-        args[:type] == Rackamole.perf ? ("%5.2f" % args[:request_time] ) : ''        
+        args[:type] == Rackamole.perf ? ("%5.2f " % args[:request_time] ) : ''        
       end
       
       # Identify the type of alert...        
@@ -130,22 +128,5 @@ module Rackamole::Alert
             "Fault"
         end
       end
-
-      # # Dump args...
-      # def self.dump( buff, env, level=0 )
-      #   env.each_pair do |k,value|
-      #     if value.respond_to?(:each_pair) 
-      #       buff << "%s %-#{40-level}s" % ['  '*level,k]
-      #       dump( buff, env[k], level+1 )
-      #     elsif value.instance_of?(Array)
-      #       buff << "%s %-#{40-level}s" % ['  '*level,k]
-      #       value.each do |v| 
-      #         buff << "%s %-#{40-(level+1)}s" % ['  '*(level+1),v]
-      #       end
-      #     else
-      #       buff << "%s %-#{40-level}s %s" % [ '  '*level, k, value.inspect ]
-      #     end        
-      #   end
-      # end
   end
 end

@@ -6,12 +6,10 @@ describe Rackamole::Alert::Emole do
     @from = "fernand"
     @to   = %w[fernand bobo blee]
     
-    @expected = TMail::Mail.new
-    @expected.set_content_type 'text', 'plain', { 'charset' => 'utf-8' }
-    @expected.mime_version = '1.0'
-    @expected.from    = @from
-    @expected.to      = @to
-
+    Mail.defaults do
+      delivery_method :test
+    end
+    
     @options = { :email => { :from => @from, :to => @to }, :perf_threshold => 10 }
     
     @args = OrderedHash.new
@@ -56,29 +54,33 @@ describe Rackamole::Alert::Emole do
   describe "#alert" do
     
     it "should send a feature email correctly" do
-      # @expected.subject = "[M()le] (Feature) -Test@Fred- for user Fernand"
-      @expected.body    = feature_body
-# puts Rackamole::Alert::Emole.deliver_alert( nil, @options, @args )
-      Rackamole::Alert::Emole.deliver_alert( nil, @options, @args ).should == @expected.body_port.to_s
+      alert = Rackamole::Alert::Emole.deliver_alert( nil, @options, @args )
+      alert.body.should    == feature_body
+      alert.subject.should == "Rackamole <Feature> on Test.Fred for user Fernand"
+      alert.from.should    == ["fernand"]
+      alert.to.should      == ["fernand", 'bobo', 'blee']
     end
 
     it "should send a perf email correctly" do
       @args[:type] = Rackamole.perf
       @args[:request_time] = 15.2
-      # @expected.subject = "[M()le] (Performance:10.0) -Test@Fred- for user Fernand"
-      @expected.body    = perf_body
-# puts Rackamole::Alert::Emole.deliver_alert( nil, @options, @args )      
-      Rackamole::Alert::Emole.deliver_alert( nil, @options, @args ).should == @expected.body_port.to_s
+
+      alert = Rackamole::Alert::Emole.deliver_alert( nil, @options, @args )
+      alert.body.to_s.should == perf_body
+      alert.subject.should   == "Rackamole <Performance> 15.20 on Test.Fred for user Fernand"
+      alert.from.should      == ["fernand"]
+      alert.to.should        == ["fernand", 'bobo', 'blee']      
     end
 
     it "should send a fault email correctly" do
       @args[:type]   = Rackamole.fault
       @args[:fault]  = 'Oh Snap!'
       @args[:stack]  = ['fred', 'blee']
-      # @expected.subject = "[M()le] (Fault) -Test@Fred- for user Fernand"
-      @expected.body    = fault_body
-# puts Rackamole::Alert::Emole.deliver_alert( nil, @options, @args )      
-      Rackamole::Alert::Emole.deliver_alert( nil, @options, @args ).should == @expected.body_port.to_s
+      alert = Rackamole::Alert::Emole.deliver_alert( nil, @options, @args )
+      alert.body.to_s.should == fault_body
+      alert.subject.should   == "Rackamole <Fault> on Test.Fred for user Fernand"
+      alert.from.should      == ["fernand"]
+      alert.to.should        == ["fernand", 'bobo', 'blee']
     end
   end
   
@@ -89,6 +91,7 @@ Feature alert on application Test on host Fred
 ----------------------------------------
 o What
 
+  user_name: Fernand
   url: http://bumblebeetuna/fred/blee
   path: /fred/blee
   status: 200
@@ -158,6 +161,7 @@ Performance alert on application Test on host Fred
 o What
 
   request_time: 15.2/10
+  user_name: Fernand
   url: http://bumblebeetuna/fred/blee
   path: /fred/blee
   status: 200
@@ -231,6 +235,7 @@ o What
    : fred
    : blee
 
+  user_name: Fernand
   url: http://bumblebeetuna/fred/blee
   path: /fred/blee
   status: 200
