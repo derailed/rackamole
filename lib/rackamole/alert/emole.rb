@@ -38,10 +38,9 @@ module Rackamole::Alert
       end      
       mail.deliver!      
       mail
-    rescue => boom
-puts boom      
+    rescue => boom    
+      logger.error( "Rackamole email alert failed with error `#{boom}" )      
       boom.backtrace.each { |l| logger.error l }
-      logger.error( "Rackamole email alert failed with error `#{boom}" )
     end
             
     def self.section( title )
