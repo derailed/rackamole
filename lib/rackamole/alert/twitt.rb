@@ -12,14 +12,14 @@ module Rackamole::Alert
     end
             
     # This class is used to send out moled twitter notification. This feature is enabled
-    # by setting both :twitter_auth and twitt_on options on the Rack::Mole. When a moled 
+    # by setting the :twitter option on the Rack::Mole. When a moled 
     # feature comes around it will be twitted on your configured account. This allow your
     # app to twitt about it's status and issues. Currently there are no provisions to throttle
     # the twitts, hence sending out twitt notifications of every moled features would not be 
     # a very good idea. Whereas sending twitts when your application bogs down or throws exception,
     # might be more appropriate. Further work will take place to throttle these events...
-    # Creating a private twitter account and asking folks in your group to follow might be an
-    # alternative to email.
+    # Creating a private twitter account and asking folks in your group to follow might be a
+    # nice alternative to email.
     #
     # NOTE: This is just an alert mechanism. All moled events will be either logged or persisted in the db
     # regardless.
@@ -27,6 +27,7 @@ module Rackamole::Alert
     # === Params:
     # username :: The name on the twitter account
     # password :: The password of your twitter account
+    # logger   :: Instance of the rackamole logger
     def initialize( logger, username, password )
       raise "You must specify your twitter account credentials" unless username or password
       @username = username

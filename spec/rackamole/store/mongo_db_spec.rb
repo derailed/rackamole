@@ -170,7 +170,7 @@ describe Rackamole::Store::MongoDb do
       store = Rackamole::Store::MongoDb.new( 
         :host     => 'localhost', 
         :port     => 27017, 
-        :db_name  => 'mole_sec_app_test_mdb',
+        :db_name  => 'sec_app_test_mdb',
         :username => 'fred',
         :password => 'letmein',
         :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )
@@ -181,7 +181,7 @@ describe Rackamole::Store::MongoDb do
         store = Rackamole::Store::MongoDb.new( 
           :host     => 'localhost', 
           :port     => 27017, 
-          :db_name  => 'mole_sec_app_test_mdb',
+          :db_name  => 'sec_app_test_mdb',
           :username => 'fred',
           :password => 'hoy',
           :logger   => Rackamole::Logger.new( :file_name => $stdout, :log_level => 'info' ) )      

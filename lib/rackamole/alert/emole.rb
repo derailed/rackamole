@@ -27,7 +27,8 @@ module Rackamole::Alert
       tmpl       = File.join( template_root, %w[alert.erb] )
       template   = Erubis::Eruby.new( IO.read( tmpl ), :trim => true )
       body       = template.result( binding )
-      subject    = "Rackamole <#{alert_type( args )}> #{request_time?( args )}on #{args[:app_name]}.#{args[:host]} for user #{args[:user_name]}"
+      timing     = request_time( args ) if args[:type] == Rackamole.perf
+      subject    = "Rackamole <#{alert_type( args )}>#{timing ? " #{timing} " : ' '}on #{args[:app_name]}.#{args[:host]} for user #{args[:user_name]}"
       
       mail = Mail.new do
         from    options[:email][:from]
@@ -38,6 +39,7 @@ module Rackamole::Alert
       mail.deliver!      
       mail
     rescue => boom
+puts boom      
       boom.backtrace.each { |l| logger.error l }
       logger.error( "Rackamole email alert failed with error `#{boom}" )
     end
@@ -78,8 +80,8 @@ module Rackamole::Alert
         buff  = []
         value = args[key]
         
-        value = request_time?( args ) if key == :request_time
-        
+        value = request_time( args ) if key == :request_time
+
         _spew( buff, '--', (silent ? '' : '  '), key, value, silent )
         buff.join( "\n" )
       end
@@ -103,10 +105,12 @@ module Rackamole::Alert
           when Rackamole.fault
             buff << spew( :fault ) << spew( :stack ) + "\n"
           when Rackamole.perf
-            buff << "#{spew( :request_time )}/#{@options[:perf_threshold]}"
+            buff << "#{spew( :request_time )} [#{@options[:perf_threshold]}]"
         end
         buff << spew( :user_name) << spew( :url ) << spew( :path ) << spew( :status ) 
-        buff << spew( :method ) << spew( :request_time ) << spew( :ip )
+        buff << spew( :method )
+        buff << spew( :request_time ) unless args[:type] == Rackamole.perf 
+        buff << spew( :ip )
         buff.join( "\n" )
       end      
       def self.server()  [ spew( :host ), spew( :software ), spew( :ruby_version ) ]; end
@@ -117,8 +121,9 @@ module Rackamole::Alert
       def self.headers() [ spew( :headers, true ) ]; end
       
       # Dump request time if any...
-      def self.request_time?( args )
-        args[:request_time] ? ("%5.2f " % args[:request_time] ) : ''        
+      def self.request_time( args )
+        return '' unless args[:request_time]
+        "%1.2f" % args[:request_time]
       end
       
       # Identify the type of alert...        

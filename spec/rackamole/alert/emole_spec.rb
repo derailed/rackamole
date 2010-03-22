@@ -55,10 +55,10 @@ describe Rackamole::Alert::Emole do
     
     it "should send a feature email correctly" do
       alert = Rackamole::Alert::Emole.deliver_alert( nil, @options, @args )
-      alert.body.should    == feature_body
-      alert.subject.should == "Rackamole <Feature> on Test.Fred for user Fernand"
-      alert.from.should    == ["fernand"]
-      alert.to.should      == ["fernand", 'bobo', 'blee']
+      alert.body.to_s.should == feature_body
+      alert.subject.should   == "Rackamole <Feature> on Test.Fred for user Fernand"
+      alert.from.should      == ["fernand"]
+      alert.to.should        == ["fernand", 'bobo', 'blee']
     end
 
     it "should send a perf email correctly" do
@@ -160,13 +160,12 @@ Performance alert on application Test on host Fred
 ----------------------------------------
 o What
 
-  request_time: 15.2/10
+  request_time: 15.20 [10]
   user_name: Fernand
   url: http://bumblebeetuna/fred/blee
   path: /fred/blee
   status: 200
   method: POST
-  request_time: 15.2
   ip: 
 
 ----------------------------------------

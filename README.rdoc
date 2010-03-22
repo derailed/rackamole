@@ -38,10 +38,11 @@
   Logging
   Hitimes
   mongo + mongo_ext
-  Twitter4r
   Chronic
   Erubis
-  Pony
+  Twitter4r  
+  Mail
+  Growl
 
 == INSTALL
 

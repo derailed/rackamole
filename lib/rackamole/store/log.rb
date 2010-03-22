@@ -48,11 +48,11 @@ module Rackamole::Store
         log.info "-"*100
         log.info case args[:type]
           when Rackamole.feature 
-            "FEATURE m()le"
+            "FEATURE"
           when Rackamole.fault
-            "FAULT m()le"
+            "FAULT"
           when Rackamole.perf
-            "PERFORMANCE m()le"
+            "PERFORMANCE"
         end
       end
       

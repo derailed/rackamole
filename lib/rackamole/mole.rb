@@ -3,8 +3,8 @@ require 'json'
 require 'mongo'
 require 'yaml'
 
-# TODO - remove default app and db name
 # TODO - add recording for response
+# TODO - need plugable archictecture for alerts and stores
 module Rack
   class Mole
     
@@ -45,8 +45,8 @@ module Rack
     #    :user_key => { :session_key => :user_id, :extractor => lambda{ |id| User.find( id ).name} }
     # ==
     #
-    # :mole_excludes :: Exclude some of the paramaters that the mole would normaly include. The list of 
-    #                   customizable paramaters is: software, ip, browser type, url, path, status, headers and body.
+    # :mole_excludes :: Exclude some of the parameters that the mole would normally include. The list of 
+    #                   customizable parameters is: software, ip, browser type, url, path, status, headers and body.
     #                   This options takes an array of symbols. Defaults to [:body].
     # :perf_excludes :: Specifies a set of paths that will be excluded when a performance issue is detected.
     #                   This is useful when certain requests are known to be slow. When a match is found an
@@ -56,7 +56,7 @@ module Rack
     #   :perf_excludes => [ {:context => '/blee/fred}, {:context => /^\/duh.*/, :threshold => 10 } ]
     # ==
     # :excluded_paths:: Exclude paths that you do not wish to mole by specifying an array of regular expresssions.
-    # :param_excludes:: Exempt certain sensitive request parameters from being logged to the mole. Specify an array of keys as 
+    # :param_excludes:: Exempt certain sensitive request parameters from being logged to the mole. Specify an array of keys
     #                   as symbols ie [:password, :card_number].
     # :session_excludes:: Exempt session params from being logged by the mole. Specify an array of keys as symbols
     #                   ie [:fred, :blee] to exclude session[:fred] and session[:blee] from being stored.
@@ -76,6 +76,12 @@ module Rack
     #   :email => { :from => 'fred@acme.com', :to => ['blee@acme.com', 'doh@acme.com'], :alert_on => [Rackamole.perf, Rackamole.fault]  }
     # ==
     #
+    # :growl        :: You can set up rackamole to send growl notifications when certain features
+    #                  are encounters in the same way email and twitt alerts works. The :to options
+    #                  describes a collection of hash values with the ip and optional password to the recipients.
+    # ==
+    #   :growl => { :to => [{ :ip => '1.1.1.1' }], :alert_on => [Rackamole.perf, Rackamole.fault]  }
+    # ==    
     def initialize( app, opts={} )    
       @app       = app
       init_options( opts )
@@ -118,7 +124,7 @@ module Rack
         raise "Unable to find rackamole config file #{opts[:config_file]}" unless ::File.exists?( opts[:config_file] )
         begin
           opts = YAML.load( ERB.new( IO.read( opts[:config_file] ) ).result( binding ) )[env]
-          opts[:environment] = env
+          opts[:environment] = env 
         rescue => boom
           raise "Unable to parse Rackamole config file #{boom}"
         end        
@@ -151,6 +157,7 @@ module Rack
       # Barf early if something is wrong in the configuration
       configured?( :twitter, [:username, :password, :alert_on], true )
       configured?( :email  , [:from, :to, :alert_on], true )
+      configured?( :growl  , [:to, :alert_on], true )      
     end
     
     # Send moled info to store and potentially send out alerts...
@@ -171,6 +178,12 @@ module Rack
         if alertable?( :email, attrs[:type] )
           logger.debug ">>> Sending out email on mole type #{attrs[:type]} from #{options[:email][:from]} to #{options[:email][:to].join( ", ")}"
           Rackamole::Alert::Emole.deliver_alert( logger, options, attrs ) 
+        end
+
+        # send growl alert ?
+        if alertable?( :growl, attrs[:type] )
+          logger.debug ">>> Sending out growl on mole type #{attrs[:type]} to @#{options[:growl][:to].inspect}"
+          Rackamole::Alert::Growl.deliver_alert( logger, options, attrs )
         end
       
         # send twitter alert ?
