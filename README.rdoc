@@ -109,7 +109,34 @@
 
   NOTE: Rackamole also provides for preventing certain sensitive params from being logged. You can specify
   param_excludes or session_excludes as array of symbols to exclude specific request or session params.
-    
+  
+=== Alerting
+
+  Rackamole provides 3 different kind of alerting mechanisms: twitter, email, growl
+  Please see docs for the various configuration settings.
+  
+  For example to setup email alerts, add the following lines in your rackamole config file.
+  
+  # Email
+  email: &email
+    :from: 'rackamole@acme.com'
+    :to: 
+      - 'fernand@acme.com'
+      - 'molley@acme.com'
+    :alert_on:
+      - <%=Rackamole.perf%>
+      - <%=Rackamole.fault%>  
+  
+  Then
+  
+  # => Dev
+  development:
+    :app_name:  Killer App
+    :user_key:  :user_name  
+    :email:     *email
+
+  This will setup email alerts when rackamole detect performance or uncaught exceptions
+      
 == LICENSE:
 
 (The MIT License)
