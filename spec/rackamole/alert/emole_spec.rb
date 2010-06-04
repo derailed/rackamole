@@ -12,7 +12,7 @@ describe Rackamole::Alert::Emole do
     
     @options = { :email => { :from => @from, :to => @to }, :perf_threshold => 10 }
     
-    @args = OrderedHash.new
+    @args = BSON::OrderedHash.new
     @args[:type]         = Rackamole.feature
     @args[:method]       = "POST"
     @args[:status]       = 200
@@ -25,25 +25,25 @@ describe Rackamole::Alert::Emole do
     @args[:request_time] = 0.55
     @args[:ruby_version] = "ruby 1.8.7 (2009-06-12 patchlevel 174) [i686-darwin10.0.0]"
 
-    @args[:params]      = OrderedHash.new
+    @args[:params]      = BSON::OrderedHash.new
     @args[:params][:id]   = 10
     @args[:params][:fred] = [10,20,30]
     
-    @args[:session] = OrderedHash.new
+    @args[:session] = BSON::OrderedHash.new
     @args[:session][:blee] = "Hello World"
     @args[:session][:fred] = [10,20,30]
     
-    @args[:headers] = OrderedHash.new
+    @args[:headers] = BSON::OrderedHash.new
     @args[:headers]['Cache-Control']  = "no-cache"
     @args[:headers]['Content-Type']   = "text/html; charset=utf-8"
     @args[:headers]['Content-Length'] = "17911"
     @args[:headers]['Set-Cookie']     = "fred"
 
-    @args[:browser] = OrderedHash.new
+    @args[:browser] = BSON::OrderedHash.new
     @args[:browser][:name]    = "Chromey"
     @args[:browser][:version] = "1.12.23.54"
     
-    @args[:machine] = OrderedHash.new
+    @args[:machine] = BSON::OrderedHash.new
     @args[:machine][:platform] = "Windoze"
     @args[:machine][:os]       = "Windows NT"
     @args[:machine][:version]  = "3.5"

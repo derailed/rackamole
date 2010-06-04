@@ -59,3 +59,15 @@
 0.3.3
 * Added support for rackamole store authentication
 * Fixed issue to enforce regexp when excluded path are specified as strings.
+
+0.3.4
+* Bugs and clean up
+
+0.3.5 
+* Bugs and clean up
+
+0.3.6 
+* Added growl notification alerts
+
+0.3.7 Updates to use the latest mongo ruby gem
+  NOTE: Some api changed in this version of the mongo ruby driver and hosed OrderedHash refs.

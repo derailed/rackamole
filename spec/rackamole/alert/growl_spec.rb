@@ -19,7 +19,7 @@ describe Rackamole::Alert::Growl do
   
   describe '#send_alert' do
     before( :each ) do      
-      @args = OrderedHash.new
+      @args = BSON::OrderedHash.new
       @args[:type]       = Rackamole.feature
       @args[:app_name]   = 'Test'
       @args[:host]       = 'Fred'

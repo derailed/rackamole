@@ -291,7 +291,7 @@ module Rack
         ;
       end
         
-      info     = OrderedHash.new
+      info     = BSON::OrderedHash.new
                            
       return info unless mole_request?( request )
                                                 
@@ -385,7 +385,7 @@ module Rack
     
     # filters out params hash and convert values to json
     def filter_params( source, excludes )
-      results = OrderedHash.new
+      results = BSON::OrderedHash.new
       source.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k| 
         results[k.to_sym] = source[k].to_json unless excludes.include?( k.to_sym )
       end

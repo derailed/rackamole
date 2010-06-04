@@ -8,15 +8,15 @@ describe Rackamole::Store::Log do
 
       @store = Rackamole::Store::Log.new( @test_file )
         
-      @args = OrderedHash.new
+      @args = BSON::OrderedHash.new
       @args[:type]               = Rackamole.feature
       @args[:app_name]           = "Test app"
       @args[:environment]        = :test
       @args[:ip]                 = "1.1.1.1"
-      @args[:browser]            = OrderedHash.new
+      @args[:browser]            = BSON::OrderedHash.new
       @args[:browser][:name]     = "Ibrowse"
       @args[:browser][:version]  = "1.X"
-      @args[:machine]            = OrderedHash.new
+      @args[:machine]            = BSON::OrderedHash.new
       @args[:machine][:platform] = "Blee"
       @args[:machine][:os]       = "Windoze"
       @args[:machine][:version]  = "10.0"
