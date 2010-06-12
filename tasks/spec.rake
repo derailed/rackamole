@@ -2,6 +2,21 @@
 if HAVE_SPEC_RAKE_SPECTASK and not PROJ.spec.files.to_a.empty?
 require 'spec/rake/verify_rcov'
 
+if defined?(Rcov)
+puts "!!!!!! HERE !!!!!!!!!"  
+  class Rcov::CodeCoverageAnalyzer
+    def update_script_lines__
+puts "AAA"      
+      if '1.9'.respond_to?(:force_encoding)
+        SCRIPT_LINES__.each do |k,v|
+          v.each { |src| src.force_encoding('utf-8') }
+        end
+      end
+      @script_lines__ = @script_lines__.merge(SCRIPT_LINES__)
+    end
+  end
+end    
+
 namespace :spec do
 
   desc 'Run all specs with basic output'
@@ -29,7 +44,8 @@ namespace :spec do
       t.libs += PROJ.libs
       t.rcov = true
       t.rcov_dir = PROJ.rcov.dir       
-      t.rcov_opts = PROJ.rcov.opts + ['--exclude', 'spec']
+      t.rcov_opts = PROJ.rcov.opts + ['--exclude', 'gems\/,spec\/', '--rails']
+puts t.inspect      
     end
 
     RCov::VerifyTask.new(:verify) do |t| 

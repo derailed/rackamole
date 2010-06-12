@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), %w[.. .. spec_helper])
+require File.expand_path(File.join(File.dirname(__FILE__), %w[.. .. spec_helper]))
 require 'chronic'
 
 describe Rackamole::Stash::Collector do
@@ -18,7 +18,7 @@ describe Rackamole::Stash::Collector do
         fault = @collector.send( :find_fault, "/", boom.backtrace.first )          
         fault.should_not                be_nil
         fault.send( :path ).should      == "/"
-        fault.send( :stack ).should     == "./spec/rackamole/stash/collector_spec.rb:13"
+        fault.send( :stack ).should     == File.join( File.dirname(__FILE__), "collector_spec.rb:13:in `block (3 levels) in <top (required)>'" )
         fault.send( :timestamp ).should == @now
       end
     end

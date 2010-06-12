@@ -4,8 +4,8 @@ Type                 : 1
 App_name             : "Test app"
 Environment          : :test
 Ip                   : "1.1.1.1"
-Browser              : {"name"=>"Ibrowse", "version"=>"1.X"}
-Machine              : {"platform"=>"Blee", "os"=>"Windoze", "version"=>"10.0"}
+Browser              : {:name=>"Ibrowse", :version=>"1.X"}
+Machine              : {:platform=>"Blee", :os=>"Windoze", :version=>"10.0"}
 User_id              : 100
 User_name            : "Fernand"
 Request_time         : 1.0

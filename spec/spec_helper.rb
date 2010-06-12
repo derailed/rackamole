@@ -1,4 +1,4 @@
-require 'rubygems'
+# require 'rubygems'
 require 'rack'
 require 'rack/test'
 

@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), %w[.. spec_helper] )
+require File.expand_path(File.join(File.dirname(__FILE__), %w[.. spec_helper]))
 
 require 'stringio'          
 
@@ -24,7 +24,7 @@ describe Rackamole::Logger do
   it "logs to an IO stream if given" do
     io = StringIO.new
     l  = Rackamole::Logger.new( { :log_file => io, :logger_name => "Test4"  })
-    l.info "This is a test io message"
+    l.info "This is a test io message"    
     io.string.split("\n").should have(1).item
     io.string.should =~ /This is a test io message/
     io.string.should =~ /INFO/
