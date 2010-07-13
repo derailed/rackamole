@@ -557,7 +557,16 @@ describe Rack::Mole do
       session.keys.size.should == 2
       session.has_key?( :bobo ).should == false
     end    
-    
+
+    it "should check deeply" do
+      @opts[:param_excludes] = [:password]
+      app( @opts )
+      get "/", { :blee => 'duh', :member => {:password => 'secret', :name => 'Kamui'} }, @test_env
+
+      params = @test_store.mole_result[:params]
+      params.keys.size.should == 2
+      params[:member].should == {:name=>'Kamui'}.to_json
+    end
   end
   
   # ---------------------------------------------------------------------------    

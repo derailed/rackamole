@@ -384,12 +384,19 @@ module Rack
     end
     
     # filters out params hash and convert values to json
-    def filter_params( source, excludes )
-      results = BSON::OrderedHash.new
-      source.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k| 
-        results[k.to_sym] = source[k].to_json unless excludes.include?( k.to_sym )
-      end
-      results
+    def filter_params( source, excludes, nest=false )
+       results = nest ? {} : BSON::OrderedHash.new
+       source.keys.sort{ |a,b| a.to_s <=> b.to_s }.each do |k|
+         unless excludes.include? k.to_sym
+           results[k.to_sym] = if source[k].is_a?(Hash)
+                         filter_params( source[k], excludes, true)
+                       else
+                         source[k]
+                       end
+           results[k.to_sym] = results[k.to_sym].to_json unless nest
+         end
+       end
+       results
     end
               
     # Trim stack trace
