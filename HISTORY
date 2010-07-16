@@ -73,3 +73,5 @@
   NOTE: Some api changed in this version of the mongo ruby driver and hosed OrderedHash refs.
   
 0.3.8 Updates for ruby 1.9 compatibility
+
+0.3.9 Merged Tatsuya - nested filter parameters
