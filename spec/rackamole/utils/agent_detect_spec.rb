@@ -17,7 +17,8 @@ describe Rackamole::Utils::AgentDetect do
         "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)",
         "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; CPT-IE401SP1; .NET CLR 1.0.3705; .NET CLR 1.1.4322; InfoPath.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30)",
         "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 1.1.4322; InfoPath.2)",
-        "Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)"        
+        "Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)",
+        "Opera/9.80 (Windows NT 6.1; U; es-ES) Presto/2.6.30 Version/10.61"        
       ]
       expectations = [
         { 
@@ -71,6 +72,10 @@ describe Rackamole::Utils::AgentDetect do
         { 
           :browser => { :name => "MSIE", :version => "5.00" }, 
           :machine => { :platform => "compatible", :os => "Windows", :version => "98", :local => "N/A" } 
+        },
+        { 
+          :browser => { :name => "Opera", :version => "9.80" }, 
+          :machine => { :platform => "Windows NT 6.1", :os => "N/A", :version => "N/A", :local => "es-ES" } 
         }
       ] 
       count = 0

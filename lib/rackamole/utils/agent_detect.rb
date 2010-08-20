@@ -36,7 +36,7 @@ module Rackamole::Utils
         @info = defaults
         begin
           extract_browser( agent, browser )
-          extract_platform( agent )
+          extract_platform( agent )    
         rescue => boom
           $stderr.puts "Unable to parse user agent `#{agent}"
           $stderr.puts boom
@@ -60,13 +60,16 @@ module Rackamole::Utils
         machine_info = match[1]
         tokens       = machine_info.split( ";" )
         unless tokens.empty?
+          index    = 1
           platform = tokens[0].strip
           @info[:machine][:platform] = platform
-          index = 1
+          
           index += 1 if tokens[1].match( /[MSIE|U]/ )
-          os = tokens[index].match( /(.+)\s([\w\d|\.]+)/ )
-          @info[:machine][:os]      = os[1].strip
-          @info[:machine][:version] = os[2].strip
+          os = tokens[index].match( /(.+)\s([\w\d|\.]+)/ )   
+          if os
+            @info[:machine][:os]      = os[1].strip if os[1]
+            @info[:machine][:version] = os[2].strip if os[2]
+          end
         end
       end
   end

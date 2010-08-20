@@ -75,3 +75,7 @@
 0.3.8 Updates for ruby 1.9 compatibility
 
 0.3.9 Merged Tatsuya - nested filter parameters
+
+0.4.0
+* Updated bones version
+* Updated to bundler
