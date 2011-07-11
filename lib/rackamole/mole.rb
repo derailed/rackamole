@@ -419,7 +419,7 @@ module Rack
       return nil unless defined?( RAILS_ENV )
       # Check for invalid route exception...
       begin
-        return ::ActionController::Routing::Routes.recognize_path( request.path, {:method => request.request_method.downcase.to_sym } )
+        return Rails.application.routes.recognize_path( request.path, {:method => request.request_method.downcase.to_sym } )        
       rescue => boom      
         return nil
       end

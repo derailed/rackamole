@@ -78,4 +78,8 @@
 
 0.4.0
 * Updated bones version
-* Updated to bundler
+* Added bundler Gemfile
+* Fixed bug parsing agent
+
+0.4.1
+* Updates for rails 3.0.8

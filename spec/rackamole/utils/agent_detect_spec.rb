@@ -5,22 +5,29 @@ describe Rackamole::Utils::AgentDetect do
   describe "os" do
     it "should detect the os and version correctly" do
       agents = [ 
-        "Opera/8.65 (X11; Linux i686; U; ru)",
-        "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1) Opera 8.65 [en]",
-        "Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/1.5.0.12 (.NET CLR 3.5.30729)",          
-        "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.6) Gecko/2009011912 Firefox/1.5.0.12 Ubiquity/0.1.5",
-        "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US; rv:1.8.0.12) Gecko/20080326 CentOS/1.5.0.12-14.el5.centos Firefox/1.5.0.12",
-        "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/3.0.195.24 Safari/532.0",
-        "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_6; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/3.0.195.24 Safari/532.0",
-        "Mozilla/5.0 (iPod; U; CPU like Mac OS X; fr) AppleWebKit/420.1 (KHTML, like Gecko) Version/3.0 Mobile/4A102 Safari/522.12",
-        "Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420.1 (KHTML, like Gecko) Version/3.0 Mobile/3B48b Safari/522.12",
-        "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)",
-        "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; CPT-IE401SP1; .NET CLR 1.0.3705; .NET CLR 1.1.4322; InfoPath.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30)",
-        "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 1.1.4322; InfoPath.2)",
-        "Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)",
-        "Opera/9.80 (Windows NT 6.1; U; es-ES) Presto/2.6.30 Version/10.61"        
+        # "Opera/8.65 (X11; Linux i686; U; ru)",
+        # "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1) Opera 8.65 [en]",
+        # "Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/1.5.0.12 (.NET CLR 3.5.30729)",          
+        # "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.6) Gecko/2009011912 Firefox/1.5.0.12 Ubiquity/0.1.5",
+        # "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US; rv:1.8.0.12) Gecko/20080326 CentOS/1.5.0.12-14.el5.centos Firefox/1.5.0.12",
+        # "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/3.0.195.24 Safari/532.0",
+        # "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_6; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/3.0.195.24 Safari/532.0",
+        # "Mozilla/5.0 (iPod; U; CPU like Mac OS X; fr) AppleWebKit/420.1 (KHTML, like Gecko) Version/3.0 Mobile/4A102 Safari/522.12",
+        # "Mozilla/5.0 (iPhone; U; CPU like Mac OS X; en) AppleWebKit/420.1 (KHTML, like Gecko) Version/3.0 Mobile/3B48b Safari/522.12",
+        # "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)",
+        # "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; CPT-IE401SP1; .NET CLR 1.0.3705; .NET CLR 1.1.4322; InfoPath.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30)",
+        # "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 1.1.4322; InfoPath.2)",
+        # "Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)",
+        # "Opera/9.80 (Windows NT 6.1; U; es-ES) Presto/2.6.30 Version/10.61",
+        "Safari/6533.17.8 CFNetwork/454.9.7 Darwin/10.4.0 (i386) (iMac10%2C1)",
+        # "Mozilla/5.0 (SnapPreviewBot) Gecko/20061206 Firefox/1.5.0.9",
+        # "StackRambler/2.0 (MSIE incompatible)"        
       ]
       expectations = [
+        { 
+          :browser => { :name => "Safari", :version => "6533.17.8" }, 
+          :machine => { :platform => "i386", :os => "Darwin", :version => "10.4.0", :local => "N/A" } 
+        },        
         { 
           :browser => { :name => "Opera", :version => "8.65" }, 
           :machine => { :platform => "X11", :os => "Linux", :version => "i686", :local => "N/A" } 

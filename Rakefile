@@ -13,7 +13,7 @@ Bones {
   readme_file 'README.rdoc'
   email       'fernand.galiana@gmail.com'
   url         'http://www.rackamole.com'
-  spec.opts   %w[--color]
+  # spec.opts   %w[--color]
   ruby_opts   %w[-W0]
   
   # Dependencies

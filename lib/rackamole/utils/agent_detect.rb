@@ -60,12 +60,12 @@ module Rackamole::Utils
         machine_info = match[1]
         tokens       = machine_info.split( ";" )
         unless tokens.empty?
-          index    = 1
-          platform = tokens[0].strip
+          platform = tokens.shift.strip
           @info[:machine][:platform] = platform
           
-          index += 1 if tokens[1].match( /[MSIE|U]/ )
-          os = tokens[index].match( /(.+)\s([\w\d|\.]+)/ )   
+          os_info = tokens.shift
+          os_info = tokens.shift if os_info && os_info.match( /[MSIE|U]/ )
+          os = os_info.match( /(.+)\s([\w\d|\.]+)/ ) if os_info
           if os
             @info[:machine][:os]      = os[1].strip if os[1]
             @info[:machine][:version] = os[2].strip if os[2]

@@ -1,5 +1,6 @@
 source :rubygems
 
+gem 'rake'
 gem "logging"
 gem "hitimes"
 gem "mongo"   , ">= 1.0.1"
@@ -15,4 +16,10 @@ group :development do
   gem "bones"
   gem "bones-git"
   gem "bones-extras"
+end
+
+group :test do
+  # gem "simplecov"
+  # gem "rcov"
+  gem "rspec"
 end
